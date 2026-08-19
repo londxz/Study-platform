@@ -14,6 +14,7 @@ const CodeEditor = (
 ) as typeof CodeEditorImport;
 
 type TrackId = "ios" | "go";
+type PathId = "learning" | "interview";
 type Screen = "home" | "track" | "practice" | "progress";
 
 type CustomSection = {
@@ -57,73 +58,126 @@ const TRACKS = {
   },
 } as const;
 
-const TRACK_SECTIONS = {
+const TRACK_PATHS = {
   ios: [
     {
-      id: "ios-basics",
+      id: "learning" as const,
       index: "01",
-      title: "iOS с нуля",
-      description: "Место под базовый курс — пока без материалов.",
-      meta: "0 тем",
-      state: "empty",
+      kicker: "ОБУЧЕНИЕ",
+      title: "Изучение iOS",
+      description: "Материал, темы, практические задачи и проекты для системного изучения iOS.",
+      features: "Темы · задачи · практика",
+      total: 48,
+      done: 0,
     },
     {
-      id: "ios-interview",
+      id: "interview" as const,
       index: "02",
-      title: "Подготовка к интервью",
-      description: "Swift, память, многопоточность, архитектура и системный дизайн.",
-      meta: "8 модулей · 64 темы · 27 задач",
-      state: "active",
+      kicker: "ИНТЕРВЬЮ",
+      title: "Подготовка к собеседованиям iOS",
+      description: "Теоретические вопросы и практические задачи с технических интервью.",
+      features: "Теория · вопросы · код",
+      total: 64,
+      done: 19,
     },
   ],
   go: [
     {
-      id: "go-basics",
+      id: "learning" as const,
       index: "01",
-      title: "Go с нуля",
-      description: "От синтаксиса и типов до HTTP-сервисов, SQL и тестирования.",
-      meta: "7 модулей · 58 тем · 34 задачи",
-      state: "active",
+      kicker: "ОБУЧЕНИЕ",
+      title: "Изучение Go",
+      description: "Последовательный путь от синтаксиса до конкурентного backend и баз данных.",
+      features: "Темы · задачи · практика",
+      total: 58,
+      done: 7,
     },
     {
-      id: "go-interview",
+      id: "interview" as const,
       index: "02",
-      title: "Подготовка к интервью",
-      description: "Горутины, планировщик, память, сети и backend design.",
-      meta: "5 модулей · 24 темы · 18 задач",
-      state: "active",
+      kicker: "ИНТЕРВЬЮ",
+      title: "Подготовка к собеседованиям Go",
+      description: "Теория, вопросы по runtime и практические backend-задачи с интервью.",
+      features: "Теория · вопросы · код",
+      total: 36,
+      done: 0,
     },
   ],
 } as const;
 
-const MODULES = {
-  ios: [
-    { title: "Swift Core", topics: 12, done: 8, icon: "{ }", description: "Value/reference types, generics, protocols и dispatch" },
-    { title: "ARC и память", topics: 8, done: 5, icon: "∞", description: "Strong, weak, unowned, capture lists и retain cycles" },
-    { title: "Concurrency", topics: 10, done: 2, icon: "⇄", description: "GCD, async/await, actors и Sendable" },
-    { title: "UIKit & SwiftUI", topics: 9, done: 1, icon: "▦", description: "Lifecycle, layout, state и rendering" },
-    { title: "Архитектура", topics: 8, done: 2, icon: "◇", description: "MVC, MVVM, Coordinator и DI" },
-    { title: "System Design", topics: 7, done: 0, icon: "⌘", description: "Сеть, кэш, офлайн-режим и наблюдаемость" },
-  ],
-  go: [
-    { title: "Основы языка", topics: 12, done: 5, icon: "{ }", description: "Типы, функции, структуры, интерфейсы и ошибки" },
-    { title: "Коллекции и память", topics: 10, done: 1, icon: "[]", description: "Slices, maps, pointers, escape analysis и GC" },
-    { title: "Горутины", topics: 12, done: 1, icon: "⇄", description: "Channels, select, context и sync primitives" },
-    { title: "Backend", topics: 11, done: 0, icon: "◎", description: "HTTP, middleware, REST, gRPC и конфигурация" },
-    { title: "Хранение данных", topics: 8, done: 0, icon: "▤", description: "SQL, транзакции, индексы, Redis и миграции" },
-    { title: "Тестирование", topics: 5, done: 0, icon: "✓", description: "Table tests, mocks, race detector и benchmarks" },
-  ],
+const PATH_MODULES = {
+  ios: {
+    learning: [
+      { title: "Swift: основы", topics: 10, done: 0, icon: "{ }", description: "Типы, функции, коллекции, optional и обработка ошибок" },
+      { title: "ООП и протоколы", topics: 8, done: 0, icon: "◇", description: "Структуры, классы, протоколы, generics и композиция" },
+      { title: "UIKit", topics: 9, done: 0, icon: "▦", description: "Lifecycle, layout, navigation и переиспользуемые экраны" },
+      { title: "SwiftUI", topics: 8, done: 0, icon: "◫", description: "State, bindings, environment, navigation и rendering" },
+      { title: "Сеть и данные", topics: 7, done: 0, icon: "◎", description: "URLSession, Codable, кэш, Core Data и offline-first" },
+      { title: "Тесты и проект", topics: 6, done: 0, icon: "✓", description: "Unit/UI tests и итоговое приложение с API" },
+    ],
+    interview: [
+      { title: "Swift Core", topics: 12, done: 8, icon: "{ }", description: "Value/reference types, generics, protocols и dispatch" },
+      { title: "ARC и память", topics: 8, done: 5, icon: "∞", description: "Strong, weak, unowned, capture lists и retain cycles" },
+      { title: "Concurrency", topics: 10, done: 2, icon: "⇄", description: "GCD, async/await, actors и Sendable" },
+      { title: "UIKit & SwiftUI", topics: 9, done: 1, icon: "▦", description: "Lifecycle, layout, state и rendering" },
+      { title: "Архитектура", topics: 8, done: 2, icon: "◇", description: "MVC, MVVM, Coordinator и dependency injection" },
+      { title: "System Design", topics: 7, done: 0, icon: "⌘", description: "Сеть, кэш, офлайн-режим и наблюдаемость" },
+    ],
+  },
+  go: {
+    learning: [
+      { title: "Основы языка", topics: 12, done: 5, icon: "{ }", description: "Типы, функции, структуры, интерфейсы и ошибки" },
+      { title: "Коллекции и память", topics: 10, done: 1, icon: "[]", description: "Slices, maps, pointers, escape analysis и GC" },
+      { title: "Горутины", topics: 12, done: 1, icon: "⇄", description: "Channels, select, context и sync primitives" },
+      { title: "Backend", topics: 11, done: 0, icon: "◎", description: "HTTP, middleware, REST, gRPC и конфигурация" },
+      { title: "Хранение данных", topics: 8, done: 0, icon: "▤", description: "SQL, транзакции, индексы, Redis и миграции" },
+      { title: "Тесты и проект", topics: 5, done: 0, icon: "✓", description: "Table tests, race detector, benchmarks и итоговый сервис" },
+    ],
+    interview: [
+      { title: "Язык и интерфейсы", topics: 7, done: 0, icon: "{ }", description: "Методы, embedding, nil, errors и tricky-вопросы" },
+      { title: "Runtime и память", topics: 6, done: 0, icon: "∞", description: "Scheduler, stack growth, escape analysis и GC" },
+      { title: "Конкурентность", topics: 7, done: 0, icon: "⇄", description: "Channels, select, context, mutex и race conditions" },
+      { title: "Backend и сети", topics: 6, done: 0, icon: "◎", description: "HTTP, TCP, middleware, gRPC и graceful shutdown" },
+      { title: "Базы данных", topics: 5, done: 0, icon: "▤", description: "SQL, транзакции, индексы и конкурентный доступ" },
+      { title: "System Design", topics: 5, done: 0, icon: "◇", description: "Очереди, кэш, масштабирование и отказоустойчивость" },
+    ],
+  },
 } as const;
 
 const PRACTICE = {
   ios: {
-    title: "Управление памятью и capture list",
-    category: "iOS · Подготовка к интервью",
-    language: "swift" as const,
-    compiler: "Swift 5.2.3",
-    task: "Исправьте замыкание так, чтобы объект DownloadService освобождался после выполнения. Затем запустите код и проверьте deinit в консоли.",
-    hint: "Замыкание хранится внутри самого объекта. Используйте capture list и не оставляйте обработчик висеть после вызова.",
-    code: `final class DownloadService {
+    learning: {
+      title: "Коллекции и преобразование данных",
+      category: "iOS · Изучение iOS",
+      language: "swift" as const,
+      compiler: "Swift 5.2.3",
+      task: "Получите названия всех непрочитанных статей через filter и map, затем выведите их по одной строке.",
+      hint: "Сначала отфильтруйте элементы по isRead, затем преобразуйте результат в массив строк.",
+      code: `struct Article {
+    let title: String
+    let isRead: Bool
+}
+
+let articles = [
+    Article(title: "Value types", isRead: true),
+    Article(title: "Protocols", isRead: false),
+    Article(title: "Concurrency", isRead: false)
+]
+
+let unreadTitles = articles
+    .filter { !$0.isRead }
+    .map { $0.title }
+
+unreadTitles.forEach { print($0) }`,
+    },
+    interview: {
+      title: "Управление памятью и capture list",
+      category: "iOS · Подготовка к собеседованиям",
+      language: "swift" as const,
+      compiler: "Swift 5.2.3",
+      task: "Исправьте замыкание так, чтобы объект DownloadService освобождался после выполнения. Затем запустите код и проверьте deinit в консоли.",
+      hint: "Замыкание хранится внутри самого объекта. Используйте capture list и не оставляйте обработчик висеть после вызова.",
+      code: `final class DownloadService {
     var onComplete: (() -> Void)?
 
     deinit {
@@ -142,15 +196,17 @@ var service: DownloadService? = DownloadService()
 service?.start()
 service?.onComplete?()
 service = nil`,
+    },
   },
   go: {
-    title: "Передача результата через channel",
-    category: "Go · Go с нуля",
-    language: "go" as const,
-    compiler: "Go 1.23.5",
-    task: "Запустите worker в отдельной горутине, безопасно получите число из канала и выведите result: 42 без sleep и глобальных переменных.",
-    hint: "Небуферизованный канал синхронизирует отправителя и получателя. Чтение можно выполнить прямо внутри fmt.Printf.",
-    code: `package main
+    learning: {
+      title: "Передача результата через channel",
+      category: "Go · Изучение Go",
+      language: "go" as const,
+      compiler: "Go 1.23.5",
+      task: "Запустите worker в отдельной горутине, безопасно получите число из канала и выведите result: 42 без sleep и глобальных переменных.",
+      hint: "Небуферизованный канал синхронизирует отправителя и получателя. Чтение можно выполнить прямо внутри fmt.Printf.",
+      code: `package main
 
 import "fmt"
 
@@ -163,12 +219,45 @@ func main() {
 	go worker(result)
 	fmt.Printf("result: %d\\n", <-result)
 }`,
+    },
+    interview: {
+      title: "Гонки данных и синхронизация",
+      category: "Go · Подготовка к собеседованиям",
+      language: "go" as const,
+      compiler: "Go 1.23.5",
+      task: "Объясните, почему инкремент counter небезопасен, и исправьте код с помощью sync.Mutex или atomic.",
+      hint: "Операция counter++ состоит из чтения, изменения и записи. Эти действия должны быть синхронизированы.",
+      code: `package main
+
+import (
+	"fmt"
+	"sync"
+)
+
+func main() {
+	var wg sync.WaitGroup
+	counter := 0
+
+	for i := 0; i < 1000; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			counter++
+		}()
+	}
+
+	wg.Wait()
+	fmt.Println(counter)
+}`,
+    },
   },
 };
 
 const SEARCH_ITEMS = [
-  ...MODULES.ios.map((item) => ({ ...item, track: "ios" as TrackId })),
-  ...MODULES.go.map((item) => ({ ...item, track: "go" as TrackId })),
+  ...PATH_MODULES.ios.learning.map((item) => ({ ...item, track: "ios" as TrackId })),
+  ...PATH_MODULES.ios.interview.map((item) => ({ ...item, track: "ios" as TrackId })),
+  ...PATH_MODULES.go.learning.map((item) => ({ ...item, track: "go" as TrackId })),
+  ...PATH_MODULES.go.interview.map((item) => ({ ...item, track: "go" as TrackId })),
 ];
 
 function Brand() {
@@ -183,6 +272,7 @@ function Brand() {
 export function StudyPlatform() {
   const [screen, setScreen] = useState<Screen>("home");
   const [track, setTrack] = useState<TrackId>("ios");
+  const [path, setPath] = useState<PathId>("learning");
   const [customSections, setCustomSections] = useState<CustomSection[]>([]);
   const [completed, setCompleted] = useState<string[]>([]);
   const [sectionModal, setSectionModal] = useState(false);
@@ -281,26 +371,32 @@ export function StudyPlatform() {
         <Dashboard
           completed={completed}
           onOpenTrack={(id) => navigate("track", id)}
-          onPractice={(id) => navigate("practice", id)}
+          onPractice={(id, selectedPath = "interview") => {
+            setPath(selectedPath);
+            navigate("practice", id);
+          }}
         />
       )}
       {screen === "track" && (
         <TrackView
+          key={track}
           track={track}
-          customSections={customSections}
           onBack={() => navigate("home")}
-          onPractice={() => navigate("practice", track)}
-          onAddSection={() => setSectionModal(true)}
+          onPractice={(selectedPath) => {
+            setPath(selectedPath);
+            navigate("practice", track);
+          }}
         />
       )}
       {screen === "practice" && (
         <PracticeView
-          key={track}
+          key={`${track}-${path}`}
           track={track}
-          completed={completed.includes(`${track}-practice`)}
+          path={path}
+          completed={completed.includes(`${track}-${path}-practice`)}
           onTrackChange={setTrack}
           onBack={() => navigate("track", track)}
-          onComplete={() => setCompleted((items) => items.includes(`${track}-practice`) ? items : [...items, `${track}-practice`])}
+          onComplete={() => setCompleted((items) => items.includes(`${track}-${path}-practice`) ? items : [...items, `${track}-${path}-practice`])}
         />
       )}
       {screen === "progress" && <ProgressView completed={completed} onOpenTrack={(id) => navigate("track", id)} />}
@@ -325,7 +421,7 @@ export function StudyPlatform() {
 function Dashboard({ completed, onOpenTrack, onPractice }: {
   completed: string[];
   onOpenTrack: (id: TrackId) => void;
-  onPractice: (id: TrackId) => void;
+  onPractice: (id: TrackId, path?: PathId) => void;
 }) {
   return (
     <div className="page-wrap" id="top">
@@ -348,7 +444,7 @@ function Dashboard({ completed, onOpenTrack, onPractice }: {
         <div className="track-grid">
           {(Object.keys(TRACKS) as TrackId[]).map((id) => {
             const item = TRACKS[id];
-            const done = item.baseDone + (completed.includes(`${id}-practice`) ? 1 : 0);
+            const done = item.baseDone + (completed.some((entry) => entry.startsWith(`${id}-`)) ? 1 : 0);
             const percent = Math.round((done / item.total) * 100);
             return (
               <button className={`track-card ${id}-card glass-panel`} type="button" onClick={() => onOpenTrack(id)} key={id} aria-label={`Открыть направление ${item.name}`}>
@@ -378,66 +474,84 @@ function Dashboard({ completed, onOpenTrack, onPractice }: {
             <span className="lesson-index">07</span>
             <div><p>iOS · Подготовка к интервью</p><h2 id="resume-title">ARC и управление памятью</h2><span>12 минут · 3 вопроса · 1 задача с кодом</span></div>
           </div>
-          <button className="primary-button" type="button" onClick={() => onPractice("ios")}>Открыть урок <span aria-hidden="true">→</span></button>
+          <button className="primary-button" type="button" onClick={() => onPractice("ios", "interview")}>Открыть урок <span aria-hidden="true">→</span></button>
         </div>
       </section>
     </div>
   );
 }
 
-function TrackView({ track, customSections, onBack, onPractice, onAddSection }: {
+function TrackView({ track, onBack, onPractice }: {
   track: TrackId;
-  customSections: CustomSection[];
   onBack: () => void;
-  onPractice: () => void;
-  onAddSection: () => void;
+  onPractice: (path: PathId) => void;
 }) {
+  const [selectedPath, setSelectedPath] = useState<PathId | null>(null);
   const details = TRACKS[track];
-  const sections = TRACK_SECTIONS[track];
-  const custom = customSections.filter((item) => item.track === track);
+  const paths = TRACK_PATHS[track];
+
+  if (!selectedPath) {
+    return (
+      <div className="page-wrap track-page">
+        <button className="back-link" onClick={onBack}><span aria-hidden="true">←</span> Все направления</button>
+        <header className="path-picker-head">
+          <p className="eyebrow">{details.short} · НАПРАВЛЕНИЕ</p>
+          <h1>Выберите формат</h1>
+          <p>Обучение и подготовка к интервью разделены, чтобы не смешивать материал с проверкой знаний.</p>
+        </header>
+
+        <section className="path-grid" aria-label={`Форматы обучения ${details.short}`}>
+          {paths.map((item) => {
+            const percent = Math.round((item.done / item.total) * 100);
+            return (
+              <button className={`path-card ${track}-path glass-panel`} type="button" onClick={() => setSelectedPath(item.id)} key={item.id}>
+                <span className="path-card-top">
+                  <span className="path-number" aria-hidden="true">{item.index}</span>
+                  <span className="path-kicker">{item.kicker}</span>
+                </span>
+                <span className="path-card-copy">
+                  <strong>{item.title}</strong>
+                  <span>{item.description}</span>
+                </span>
+                <span className="path-features">{item.features}</span>
+                <span className="progress-row"><span>Пройдено {item.done} из {item.total} тем</span><strong>{percent}%</strong></span>
+                <span className="progress-bar" aria-label={`Прогресс: ${percent}%`}><span style={{ width: `${percent}%` }} /></span>
+                <span className="path-link">Открыть раздел <span aria-hidden="true">↗</span></span>
+              </button>
+            );
+          })}
+        </section>
+      </div>
+    );
+  }
+
+  const selected = paths.find((item) => item.id === selectedPath) ?? paths[0];
+  const modules = PATH_MODULES[track][selectedPath];
+
   return (
     <div className="page-wrap track-page">
-      <button className="back-link" onClick={onBack}><span aria-hidden="true">←</span> Все направления</button>
-      <section className={`track-hero ${track}-hero glass-panel`}>
+      <button className="back-link" onClick={() => setSelectedPath(null)}><span aria-hidden="true">←</span> К выбору формата</button>
+      <header className="path-detail-head">
+        <div>
+          <p className="eyebrow">{details.short} · {selected.kicker}</p>
+          <h1>{selected.title}</h1>
+          <p>{selected.description}</p>
+        </div>
         <span className={`track-logo large ${track}-logo`} aria-hidden="true">{details.short}</span>
-        <div className="track-hero-copy">
-          <p className="eyebrow">{details.kicker}</p>
-          <h1>{details.name}</h1>
-          <p>{details.description}</p>
-        </div>
-        <div className="track-hero-stat"><strong>{details.baseDone}</strong><span>тем пройдено</span></div>
-      </section>
+      </header>
 
-      <section className="curriculum-section" aria-labelledby="curriculum-title">
-        <div className="section-heading">
-          <div><p className="eyebrow">УЧЕБНЫЙ ПЛАН</p><h2 id="curriculum-title">Разделы направления</h2></div>
-          <button className="quiet-button glass-control" onClick={onAddSection}>+ Добавить раздел</button>
+      <section className="modules-section path-modules" aria-labelledby="modules-title">
+        <div className="section-heading compact">
+          <div>
+            <p className="eyebrow">{selectedPath === "learning" ? "УЧЕБНЫЙ ПЛАН" : "БАЗА ИНТЕРВЬЮ"}</p>
+            <h2 id="modules-title">{selectedPath === "learning" ? "Темы и задачи" : "Вопросы и практика"}</h2>
+          </div>
         </div>
-        <div className="section-card-list">
-          {sections.map((section) => (
-            <article className={`section-card glass-panel ${section.state === "empty" ? "empty" : ""}`} key={section.id}>
-              <span className="section-number">{section.index}</span>
-              <div><div className="section-title-row"><h3>{section.title}</h3>{section.state === "empty" && <span className="empty-pill">Пока пусто</span>}</div><p>{section.description}</p><span className="section-meta">{section.meta}</span></div>
-              <button type="button" disabled={section.state === "empty"} onClick={onPractice} aria-label={`Открыть раздел ${section.title}`}>{section.state === "empty" ? "+" : "→"}</button>
-            </article>
-          ))}
-          {custom.map((section, index) => (
-            <article className="section-card glass-panel custom" key={section.id}>
-              <span className="section-number">{String(sections.length + index + 1).padStart(2, "0")}</span>
-              <div><div className="section-title-row"><h3>{section.title}</h3><span className="custom-pill">Ваш раздел</span></div><p>{section.description || "Добавьте темы и материалы, когда будете готовы."}</p><span className="section-meta">0 тем · создано вами</span></div>
-              <button type="button" disabled aria-label="Раздел пока пуст">+</button>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="modules-section" aria-labelledby="modules-title">
-        <div className="section-heading compact"><div><p className="eyebrow">СОДЕРЖАНИЕ</p><h2 id="modules-title">Модули для практики</h2></div></div>
         <div className="module-grid">
-          {MODULES[track].map((module, index) => {
+          {modules.map((module, index) => {
             const pct = Math.round((module.done / module.topics) * 100);
             return (
-              <button className="module-card glass-panel" onClick={onPractice} key={module.title}>
+              <button className="module-card glass-panel" onClick={() => onPractice(selectedPath)} key={module.title} aria-label={`Открыть ${module.title}`}>
                 <span className="module-icon" aria-hidden="true">{module.icon}</span>
                 <span className="module-order">{String(index + 1).padStart(2, "0")}</span>
                 <strong>{module.title}</strong>
@@ -452,14 +566,15 @@ function TrackView({ track, customSections, onBack, onPractice, onAddSection }: 
   );
 }
 
-function PracticeView({ track, completed, onTrackChange, onBack, onComplete }: {
+function PracticeView({ track, path, completed, onTrackChange, onBack, onComplete }: {
   track: TrackId;
+  path: PathId;
   completed: boolean;
   onTrackChange: (track: TrackId) => void;
   onBack: () => void;
   onComplete: () => void;
 }) {
-  const lesson = PRACTICE[track];
+  const lesson = PRACTICE[track][path];
   const [code, setCode] = useState(lesson.code);
   const [result, setResult] = useState<RunResult | null>(null);
   const [running, setRunning] = useState(false);

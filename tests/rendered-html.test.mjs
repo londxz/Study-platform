@@ -28,13 +28,19 @@ test("server-renders the Learny dashboard", async () => {
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton/i);
 });
 
-test("ships code runner limits and project metadata", async () => {
-  const [runner, layout, packageJson] = await Promise.all([
+test("ships learning paths, code runner limits and project metadata", async () => {
+  const [runner, layout, packageJson, platform] = await Promise.all([
     readFile(new URL("../app/api/run/route.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
+    readFile(new URL("../app/StudyPlatform.tsx", import.meta.url), "utf8"),
   ]);
 
+  assert.match(platform, /Изучение iOS/);
+  assert.match(platform, /Подготовка к собеседованиям iOS/);
+  assert.match(platform, /Изучение Go/);
+  assert.match(platform, /Подготовка к собеседованиям Go/);
+  assert.match(platform, /PATH_MODULES\[track\]\[selectedPath\]/);
   assert.match(runner, /id: 83/);
   assert.match(runner, /id: 107/);
   assert.match(runner, /code\.length > 10_000/);
