@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -16,8 +15,9 @@ import (
 	"learny/backend/internal/runner"
 	"learny/backend/internal/store"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
 )
 
@@ -35,7 +35,17 @@ func main() {
 		}
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	pool, err := pgxpool.New(ctx, cfg.DatabaseURL)
+	poolConfig, err := pgxpool.ParseConfig(cfg.DatabaseURL)
+	if err != nil {
+		cancel()
+		logger.Error("database configuration failed", "error", err)
+		os.Exit(1)
+	}
+	// Neon uses PgBouncer transaction pooling for pooled connection strings.
+	// Unnamed execution avoids prepared-statement name collisions between
+	// backend connections while retaining the extended PostgreSQL protocol.
+	poolConfig.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeExec
+	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
 	cancel()
 	if err != nil {
 		logger.Error("database connection failed", "error", err)
@@ -77,10 +87,12 @@ func main() {
 }
 
 func migrate(databaseURL string) error {
-	db, err := sql.Open("pgx", databaseURL)
+	connConfig, err := pgx.ParseConfig(databaseURL)
 	if err != nil {
 		return err
 	}
+	connConfig.DefaultQueryExecMode = pgx.QueryExecModeExec
+	db := stdlib.OpenDB(*connConfig)
 	defer db.Close()
 	if err := goose.SetDialect("postgres"); err != nil {
 		return err
