@@ -15,6 +15,7 @@ const CodeEditor = (
 
 type TrackId = "ios" | "go";
 type PathId = "learning" | "interview";
+type MockMode = "theory" | "livecoding";
 type Screen = "home" | "track" | "practice" | "mock" | "progress";
 
 type CustomSection = {
@@ -61,18 +62,8 @@ const TRACKS = {
 const TRACK_PATHS = {
   ios: [
     {
-      id: "learning" as const,
-      index: "01",
-      kicker: "ОБУЧЕНИЕ",
-      title: "Изучение iOS",
-      description: "Материал, темы, практические задачи и проекты для системного изучения iOS.",
-      features: "Темы · задачи · практика",
-      total: 48,
-      done: 0,
-    },
-    {
       id: "interview" as const,
-      index: "02",
+      index: "01",
       kicker: "ИНТЕРВЬЮ",
       title: "Подготовка к собеседованиям iOS",
       description: "Теоретические вопросы и практические задачи с технических интервью.",
@@ -80,27 +71,37 @@ const TRACK_PATHS = {
       total: 64,
       done: 19,
     },
+    {
+      id: "learning" as const,
+      index: "02",
+      kicker: "УЧЕБНЫЙ ПЛАН",
+      title: "Изучение iOS",
+      description: "Материал, темы, практические задачи и проекты для системного изучения iOS.",
+      features: "Темы · задачи · практика",
+      total: 48,
+      done: 0,
+    },
   ],
   go: [
     {
-      id: "learning" as const,
-      index: "01",
-      kicker: "ОБУЧЕНИЕ",
-      title: "Изучение Go",
-      description: "Последовательный путь от синтаксиса до конкурентного backend и баз данных.",
-      features: "Темы · задачи · практика",
-      total: 58,
-      done: 7,
-    },
-    {
       id: "interview" as const,
-      index: "02",
+      index: "01",
       kicker: "ИНТЕРВЬЮ",
       title: "Подготовка к собеседованиям Go",
       description: "Теория, вопросы по runtime и практические backend-задачи с интервью.",
       features: "Теория · вопросы · код",
       total: 36,
       done: 0,
+    },
+    {
+      id: "learning" as const,
+      index: "02",
+      kicker: "УЧЕБНЫЙ ПЛАН",
+      title: "Изучение Go",
+      description: "Последовательный путь от синтаксиса до конкурентного backend и баз данных.",
+      features: "Темы · задачи · практика",
+      total: 58,
+      done: 7,
     },
   ],
 } as const;
@@ -261,6 +262,20 @@ const MOCK_QUESTIONS = {
     "Чем Task, async let и TaskGroup отличаются друг от друга?",
     "Опишите жизненный цикл UIViewController и типичные ошибки в нём.",
     "Как бы вы спроектировали кэширование изображений для большой ленты?",
+    "Чем protocol witness table отличается от dynamic dispatch через Objective-C runtime?",
+    "Как Copy-on-Write работает в стандартных коллекциях Swift?",
+    "Почему escaping-замыкание может потребовать явного self?",
+    "Чем actor отличается от serial DispatchQueue?",
+    "Что такое Sendable и какие проблемы он помогает обнаружить?",
+    "Как устроена обработка ошибок через throws, Result и async throws?",
+    "Какие этапы проходит Auto Layout при вычислении и применении размеров?",
+    "Как SwiftUI определяет, какую часть дерева представлений нужно обновить?",
+    "Когда выбрать struct, final class или actor для новой модели?",
+    "Как организовать dependency injection без глобального service locator?",
+    "Какие уровни тестирования нужны iOS-приложению и что проверять на каждом?",
+    "Как сделать сетевой слой устойчивым к отмене, повторным запросам и потере сети?",
+    "Что происходит с приложением при переходе между active, inactive и background?",
+    "Как спроектировать офлайн-синхронизацию с разрешением конфликтов?",
   ],
   go: [
     "Как устроен interface в Go и почему interface с nil-указателем может быть не nil?",
@@ -269,6 +284,47 @@ const MOCK_QUESTIONS = {
     "Как правильно распространять отмену операции через context?",
     "Чем длина slice отличается от capacity и когда происходит перевыделение массива?",
     "Как бы вы спроектировали graceful shutdown для HTTP-сервиса?",
+    "Чем value receiver отличается от pointer receiver и как это влияет на method set?",
+    "Как работает defer и в каком порядке вычисляются его аргументы?",
+    "Когда использовать errors.Is, errors.As и оборачивание через %w?",
+    "Из-за чего возникает data race и почему mutex не всегда лучший вариант?",
+    "Как избежать утечки goroutine в конвейере с несколькими стадиями?",
+    "Чем unbuffered channel отличается от buffered channel с точки зрения синхронизации?",
+    "Как map ведёт себя при конкурентном чтении и записи?",
+    "Что такое escape analysis и как он связан с аллокациями в heap?",
+    "Как garbage collector Go влияет на latency сервиса?",
+    "Как правильно ограничить параллелизм обработки большого потока задач?",
+    "Какие гарантии дают транзакции и уровни изоляции базы данных?",
+    "Как организовать retries, timeout и idempotency для внешнего API?",
+    "Как профилировать CPU, память и блокировки в Go-сервисе?",
+    "Как спроектировать сервис, который корректно переживает частичные отказы?",
+  ],
+} as const;
+
+const LIVE_CODING_PROMPTS = {
+  ios: [
+    ["Управление памятью", "Исправьте замыкание так, чтобы объект освобождался после выполнения.", "Используйте capture list и очистите обработчик после вызова."],
+    ["Уникальные элементы", "Удалите дубликаты из массива Int, сохранив исходный порядок.", "Храните уже встреченные значения в Set."],
+    ["Первый уникальный символ", "Найдите первый символ строки, который встречается ровно один раз.", "Посчитайте частоты, затем пройдите строку повторно."],
+    ["Группировка моделей", "Сгруппируйте пользователей по городу и отсортируйте имена внутри групп.", "Используйте Dictionary(grouping:by:) и mapValues."],
+    ["Безопасный декодинг", "Декодируйте массив JSON так, чтобы одна повреждённая запись не ломала остальные.", "Обрабатывайте ошибку каждой записи отдельно."],
+    ["Debounce поиска", "Реализуйте debounce: предыдущий запланированный поиск должен отменяться.", "Храните и отменяйте текущую отложенную работу."],
+    ["Потокобезопасный счётчик", "Защитите счётчик от одновременного изменения из нескольких очередей.", "Изолируйте состояние очередью или блокировкой."],
+    ["LRU-кэш", "Реализуйте get и put для LRU-кэша за O(1).", "Соедините словарь с двусвязным списком."],
+    ["Параллельная загрузка", "Соберите результаты независимых загрузок, сохранив исходный порядок.", "Свяжите каждый результат с индексом запроса."],
+    ["Diff коллекций", "Найдите добавленные, удалённые и общие идентификаторы двух массивов.", "Используйте Set и операции difference и intersection."],
+  ],
+  go: [
+    ["Гонки данных", "Найдите data race в счётчике и исправьте её с помощью Mutex или atomic.", "Операция инкремента должна быть синхронизирована."],
+    ["Worker pool", "Реализуйте worker pool с фиксированным числом воркеров.", "Закройте канал задач и дождитесь воркеров через WaitGroup."],
+    ["Отмена через context", "Остановите долгую операцию при отмене context без утечки goroutine.", "Проверяйте ctx.Done() в select."],
+    ["Безопасный кэш", "Реализуйте конкурентно безопасный in-memory кэш с Get и Set.", "Используйте RWMutex."],
+    ["Merge channels", "Объедините несколько каналов в один и корректно закройте результат.", "По goroutine на вход и WaitGroup для закрытия."],
+    ["Дедупликация", "Удалите дубликаты строк, сохранив порядок первого появления.", "Используйте map[string]struct{} как множество."],
+    ["HTTP middleware", "Добавьте request ID и измерение времени обработки запроса.", "Оберните http.Handler через http.HandlerFunc."],
+    ["Лимит параллелизма", "Обработайте URL параллельно, но не более трёх одновременно.", "Используйте buffered channel как семафор."],
+    ["Graceful shutdown", "Завершите HTTP-сервер по сигналу ОС без обрыва активных запросов.", "Используйте signal.NotifyContext и Server.Shutdown."],
+    ["LRU-кэш", "Реализуйте Get и Put для LRU-кэша за O(1).", "Используйте map и container/list."],
   ],
 } as const;
 
@@ -292,6 +348,8 @@ export function StudyPlatform() {
   const [screen, setScreen] = useState<Screen>("home");
   const [track, setTrack] = useState<TrackId>("ios");
   const [path, setPath] = useState<PathId>("learning");
+  const [mockMode, setMockMode] = useState<MockMode>("theory");
+  const [interviewTaskCount, setInterviewTaskCount] = useState(1);
   const [customSections, setCustomSections] = useState<CustomSection[]>([]);
   const [completed, setCompleted] = useState<string[]>([]);
   const [sectionModal, setSectionModal] = useState(false);
@@ -392,6 +450,7 @@ export function StudyPlatform() {
           onOpenTrack={(id) => navigate("track", id)}
           onPractice={(id, selectedPath = "interview") => {
             setPath(selectedPath);
+            setInterviewTaskCount(1);
             navigate("practice", id);
           }}
         />
@@ -403,9 +462,11 @@ export function StudyPlatform() {
           onBack={() => navigate("home")}
           onPractice={(selectedPath) => {
             setPath(selectedPath);
+            setInterviewTaskCount(1);
             navigate("practice", track);
           }}
-          onMockInterview={() => {
+          onMockInterview={(mode) => {
+            setMockMode(mode);
             setPath("interview");
             navigate("mock", track);
           }}
@@ -413,10 +474,11 @@ export function StudyPlatform() {
       )}
       {screen === "practice" && (
         <PracticeView
-          key={`${track}-${path}`}
+          key={`${track}-${path}-${interviewTaskCount}`}
           track={track}
           path={path}
           completed={completed.includes(`${track}-${path}-practice`)}
+          sessionCount={path === "interview" ? interviewTaskCount : 1}
           onTrackChange={setTrack}
           onBack={() => navigate("track", track)}
           onComplete={() => setCompleted((items) => items.includes(`${track}-${path}-practice`) ? items : [...items, `${track}-${path}-practice`])}
@@ -424,9 +486,15 @@ export function StudyPlatform() {
       )}
       {screen === "mock" && (
         <MockInterviewView
-          key={track}
+          key={`${track}-${mockMode}`}
           track={track}
+          mode={mockMode}
           onBack={() => navigate("track", track)}
+          onStartLivecoding={(count) => {
+            setPath("interview");
+            setInterviewTaskCount(count);
+            navigate("practice", track);
+          }}
         />
       )}
       {screen === "progress" && <ProgressView completed={completed} onOpenTrack={(id) => navigate("track", id)} />}
@@ -515,7 +583,7 @@ function TrackView({ track, onBack, onPractice, onMockInterview }: {
   track: TrackId;
   onBack: () => void;
   onPractice: (path: PathId) => void;
-  onMockInterview: () => void;
+  onMockInterview: (mode: MockMode) => void;
 }) {
   const [selectedPath, setSelectedPath] = useState<PathId | null>(null);
   const details = TRACKS[track];
@@ -580,15 +648,15 @@ function TrackView({ track, onBack, onPractice, onMockInterview }: {
             </div>
           </div>
           <div className="mock-grid">
-            <button className="mock-choice glass-panel" type="button" onClick={onMockInterview}>
+            <button className="mock-choice glass-panel" type="button" onClick={() => onMockInterview("theory")}>
               <span className="mock-choice-icon" aria-hidden="true">?</span>
-              <span className="mock-choice-copy"><strong>Теоретическое интервью</strong><small>6 вопросов подряд · ответы сохраняются до завершения</small></span>
-              <span className="mock-choice-meta">20–30 мин <b aria-hidden="true">→</b></span>
+              <span className="mock-choice-copy"><strong>Теория</strong><small>Выберите от 1 до 20 вопросов перед началом</small></span>
+              <span className="mock-choice-meta">до 20 <b aria-hidden="true">→</b></span>
             </button>
-            <button className="mock-choice glass-panel" type="button" onClick={() => onPractice("interview")}>
+            <button className="mock-choice glass-panel" type="button" onClick={() => onMockInterview("livecoding")}>
               <span className="mock-choice-icon code" aria-hidden="true">{`{ }`}</span>
-              <span className="mock-choice-copy"><strong>Только лайфкодинг</strong><small>Одна практическая задача в редакторе с компиляцией</small></span>
-              <span className="mock-choice-meta">30–40 мин <b aria-hidden="true">→</b></span>
+              <span className="mock-choice-copy"><strong>Лайфкодинг</strong><small>Выберите от 1 до 10 задач с компиляцией</small></span>
+              <span className="mock-choice-meta">до 10 <b aria-hidden="true">→</b></span>
             </button>
           </div>
         </section>
@@ -620,12 +688,37 @@ function TrackView({ track, onBack, onPractice, onMockInterview }: {
   );
 }
 
-function MockInterviewView({ track, onBack }: { track: TrackId; onBack: () => void }) {
-  const questions = MOCK_QUESTIONS[track];
+function MockInterviewView({ track, mode, onBack, onStartLivecoding }: {
+  track: TrackId;
+  mode: MockMode;
+  onBack: () => void;
+  onStartLivecoding: (count: number) => void;
+}) {
+  const maxCount = mode === "theory" ? 20 : 10;
+  const [count, setCount] = useState(mode === "theory" ? 6 : 3);
+  const [started, setStarted] = useState(false);
+  const questions = useMemo(() => MOCK_QUESTIONS[track].slice(0, count), [count, track]);
   const [current, setCurrent] = useState(0);
-  const [answers, setAnswers] = useState<string[]>(() => questions.map(() => ""));
+  const [answers, setAnswers] = useState<string[]>([]);
   const [finished, setFinished] = useState(false);
   const progress = Math.round(((current + 1) / questions.length) * 100);
+
+  const setSafeCount = (value: number) => {
+    const normalized = Number.isFinite(value) ? Math.floor(value) : 1;
+    setCount(Math.min(maxCount, Math.max(1, normalized)));
+  };
+
+  const start = (event: FormEvent) => {
+    event.preventDefault();
+    if (mode === "livecoding") {
+      onStartLivecoding(count);
+      return;
+    }
+    setAnswers(questions.map(() => ""));
+    setCurrent(0);
+    setFinished(false);
+    setStarted(true);
+  };
 
   const updateAnswer = (value: string) => {
     setAnswers((items) => items.map((answer, index) => index === current ? value : answer));
@@ -644,6 +737,30 @@ function MockInterviewView({ track, onBack }: { track: TrackId; onBack: () => vo
     setCurrent(0);
     setFinished(false);
   };
+
+  if (!started) {
+    return (
+      <div className="page-wrap mock-page">
+        <button className="back-link" onClick={onBack}><span aria-hidden="true">←</span> К подготовке</button>
+        <form className="mock-setup glass-panel" onSubmit={start} aria-labelledby="mock-setup-title">
+          <div className="mock-setup-icon" aria-hidden="true">{mode === "theory" ? "?" : "{ }"}</div>
+          <p className="eyebrow">МОК-ИНТЕРВЬЮ · {TRACKS[track].short}</p>
+          <h1 id="mock-setup-title">{mode === "theory" ? "Теория" : "Лайфкодинг"}</h1>
+          <p>{mode === "theory"
+            ? "Выберите количество вопросов. Отвечайте последовательно, как на настоящем техническом интервью."
+            : "Выберите количество задач. Каждая откроется в редакторе с компиляцией Swift или Go."}</p>
+          <label htmlFor="interview-count">Количество {mode === "theory" ? "вопросов" : "задач"}</label>
+          <div className="count-stepper">
+            <button type="button" onClick={() => setSafeCount(count - 1)} disabled={count <= 1} aria-label="Уменьшить количество">−</button>
+            <input id="interview-count" type="number" min="1" max={maxCount} value={count} onChange={(event) => setSafeCount(Number(event.target.value))} />
+            <button type="button" onClick={() => setSafeCount(count + 1)} disabled={count >= maxCount} aria-label="Увеличить количество">+</button>
+          </div>
+          <span className="count-limit">Минимум 1 · максимум {maxCount}</span>
+          <button className="primary-button mock-start-button" type="submit">Начать <span aria-hidden="true">→</span></button>
+        </form>
+      </div>
+    );
+  }
 
   return (
     <div className="page-wrap mock-page">
@@ -692,19 +809,57 @@ function MockInterviewView({ track, onBack }: { track: TrackId; onBack: () => vo
   );
 }
 
-function PracticeView({ track, path, completed, onTrackChange, onBack, onComplete }: {
+function PracticeView({ track, path, completed, sessionCount, onTrackChange, onBack, onComplete }: {
   track: TrackId;
   path: PathId;
   completed: boolean;
+  sessionCount: number;
   onTrackChange: (track: TrackId) => void;
   onBack: () => void;
   onComplete: () => void;
 }) {
-  const lesson = PRACTICE[track][path];
+  const sessionTasks = useMemo(() => {
+    const base = PRACTICE[track][path];
+    if (path !== "interview") return [base];
+    return LIVE_CODING_PROMPTS[track].slice(0, Math.min(10, Math.max(1, sessionCount))).map(([title, task, hint], index) => ({
+      ...base,
+      title,
+      task,
+      hint,
+      code: index === 0 ? base.code : track === "ios"
+        ? `import Foundation
+
+// Напишите решение здесь
+`
+        : `package main
+
+import "fmt"
+
+func main() {
+	fmt.Println("write your solution")
+}
+`,
+    }));
+  }, [path, sessionCount, track]);
+  const [currentTask, setCurrentTask] = useState(0);
+  const lesson = sessionTasks[currentTask];
   const [code, setCode] = useState(lesson.code);
   const [result, setResult] = useState<RunResult | null>(null);
   const [running, setRunning] = useState(false);
   const [hintOpen, setHintOpen] = useState(false);
+  const hasNextTask = currentTask < sessionTasks.length - 1;
+
+  const advanceTask = () => {
+    if (!hasNextTask) {
+      onBack();
+      return;
+    }
+    const nextTask = currentTask + 1;
+    setCurrentTask(nextTask);
+    setCode(sessionTasks[nextTask].code);
+    setResult(null);
+    setHintOpen(false);
+  };
 
   const run = async () => {
     setRunning(true);
@@ -730,17 +885,19 @@ function PracticeView({ track, path, completed, onTrackChange, onBack, onComplet
     <div className="practice-page">
       <aside className="practice-sidebar glass-panel">
         <button className="back-link light" onClick={onBack}><span aria-hidden="true">←</span> К разделам</button>
-        <p className="sidebar-eyebrow">КОДОВАЯ ПРАКТИКА</p>
+        <p className="sidebar-eyebrow">{path === "interview" ? "ЛАЙФКОДИНГ" : "КОДОВАЯ ПРАКТИКА"}</p>
         <h2>{TRACKS[track].name}</h2>
         <div className="language-switch" role="group" aria-label="Язык практики">
           <button className={track === "ios" ? "active" : ""} onClick={() => onTrackChange("ios")}>Swift</button>
           <button className={track === "go" ? "active" : ""} onClick={() => onTrackChange("go")}>Go</button>
         </div>
         <ol className="task-list">
-          <li className="done"><span>✓</span><div><strong>Теория</strong><small>Короткий разбор</small></div></li>
-          <li className="done"><span>✓</span><div><strong>Вопросы</strong><small>3 вопроса интервью</small></div></li>
-          <li className="current"><span>03</span><div><strong>Задача с кодом</strong><small>{lesson.compiler}</small></div></li>
-          <li><span>04</span><div><strong>Итоги</strong><small>Закрепить тему</small></div></li>
+          {sessionTasks.map((task, index) => (
+            <li className={index < currentTask ? "done" : index === currentTask ? "current" : ""} key={`${task.title}-${index}`}>
+              <span>{index < currentTask ? "✓" : String(index + 1).padStart(2, "0")}</span>
+              <div><strong>{task.title}</strong><small>{task.compiler}</small></div>
+            </li>
+          ))}
         </ol>
         <div className="sidebar-note"><span aria-hidden="true">⌁</span><p>Код отправляется в изолированный внешний компилятор. Не вставляйте секреты и токены.</p></div>
       </aside>
@@ -748,10 +905,10 @@ function PracticeView({ track, path, completed, onTrackChange, onBack, onComplet
       <section className="workspace">
         <header className="workspace-head">
           <div><p>{lesson.category}</p><h1>{lesson.title}</h1></div>
-          <span className={`completion-badge ${completed ? "done" : ""}`}>{completed ? "✓ Выполнено" : "Практика"}</span>
+          <span className={`completion-badge ${completed ? "done" : ""}`}>{path === "interview" ? `${currentTask + 1} из ${sessionTasks.length}` : completed ? "✓ Выполнено" : "Практика"}</span>
         </header>
         <div className="task-brief glass-panel">
-          <div className="task-brief-number">03</div>
+          <div className="task-brief-number">{String(currentTask + 1).padStart(2, "0")}</div>
           <div><p className="eyebrow">ЗАДАЧА</p><p>{lesson.task}</p></div>
           <button onClick={() => setHintOpen((open) => !open)}>{hintOpen ? "Скрыть" : "Подсказка"}</button>
         </div>
@@ -787,7 +944,10 @@ function PracticeView({ track, path, completed, onTrackChange, onBack, onComplet
         </div>
         <div className="runner-bar glass-panel">
           <div><span className="live-dot" />Изолированный запуск · лимит 10 КБ</div>
-          <button className="run-button" onClick={run} disabled={running || !code.trim()}>{running ? <><i className="spinner" /> Компилирую…</> : <><span aria-hidden="true">▶</span> Запустить код</>}</button>
+          <div className="runner-actions">
+            {result?.ok && path === "interview" && <button className="secondary-button" type="button" onClick={advanceTask}>{hasNextTask ? "Следующая задача" : "Завершить"} <span aria-hidden="true">→</span></button>}
+            <button className="run-button" onClick={run} disabled={running || !code.trim()}>{running ? <><i className="spinner" /> Компилирую…</> : <><span aria-hidden="true">▶</span> Запустить код</>}</button>
+          </div>
         </div>
       </section>
     </div>
