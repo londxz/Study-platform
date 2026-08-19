@@ -899,18 +899,18 @@ func main() {
       </aside>}
 
       <section className="workspace">
-        {isLivecoding ? <header className="livecoding-head">
+        {isLivecoding ? <header className="livecoding-brief glass-panel">
           <button className="livecoding-back" type="button" onClick={onBack} aria-label="Вернуться к подготовке">←</button>
-          <h1>{lesson.title}</h1>
-          <span>{currentTask + 1} / {sessionTasks.length}</span>
+          <div className="livecoding-brief-copy">
+            <div><h1>{lesson.title}</h1><span>{currentTask + 1} / {sessionTasks.length}</span></div>
+            <p>{lesson.task}</p>
+          </div>
+          <button className="livecoding-hint" type="button" onClick={() => setHintOpen((open) => !open)}>{hintOpen ? "Скрыть" : "Подсказка"}</button>
         </header> : <header className="workspace-head">
           <div><p>{lesson.category}</p><h1>{lesson.title}</h1></div>
           <span className={`completion-badge ${completed ? "done" : ""}`}>{completed ? "✓ Выполнено" : "Практика"}</span>
         </header>}
-        {isLivecoding ? <div className="livecoding-prompt">
-          <p>{lesson.task}</p>
-          <button type="button" onClick={() => setHintOpen((open) => !open)}>{hintOpen ? "Скрыть подсказку" : "Подсказка"}</button>
-        </div> : <div className="task-brief glass-panel">
+        {!isLivecoding && <div className="task-brief glass-panel">
           <div className="task-brief-number">01</div>
           <div><p className="eyebrow">ЗАДАЧА</p><p>{lesson.task}</p></div>
           <button onClick={() => setHintOpen((open) => !open)}>{hintOpen ? "Скрыть" : "Подсказка"}</button>
