@@ -10,10 +10,21 @@ const { d1, r2 } = hostingConfig;
 
 // macOS Seatbelt blocks FSEvents, so Codex previews need polling for HMR.
 const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
+const localEnvKeys = [
+  "LEARNY_API_URL",
+  "LEARNY_BFF_SECRET",
+  "LEARNY_DEV_USER_ID",
+  "LEARNY_DEV_USER_EMAIL",
+] as const;
+const localVars = Object.fromEntries(localEnvKeys.flatMap((key) => {
+  const value = process.env[key];
+  return value ? [[key, value]] : [];
+}));
 
 const localBindingConfig = {
   main: "./worker/index.ts",
   compatibility_flags: ["nodejs_compat"],
+  vars: localVars,
   d1_databases: d1
     ? [
         {

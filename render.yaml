@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: learny-api
+    runtime: docker
+    plan: free
+    region: frankfurt
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /readyz
+    envVars:
+      - key: LEARNY_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: LEARNY_BFF_SECRET
+        sync: false
+      - key: LEARNY_ADMIN_EMAILS
+        sync: false
+      - key: LEARNY_MIGRATE_ON_START
+        value: "true"
+      - key: JUDGE0_URL
+        value: https://ce.judge0.com
+      - key: LEARNY_REQUEST_TIMEOUT
+        value: 12s
+      - key: LEARNY_SUBMISSION_CONCURRENCY
+        value: "1"

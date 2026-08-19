@@ -22,24 +22,24 @@ test("server-renders the Learny dashboard", async () => {
   const html = await response.text();
   assert.match(html, /<title>Learny — личная платформа обучения<\/title>/i);
   assert.match(html, /С возвращением, londxz/);
-  assert.match(html, /Последняя задача/);
   assert.match(html, /iOS Development/);
   assert.match(html, /Go Development/);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton/i);
 });
 
-test("ships learning paths, code runner limits and project metadata", async () => {
-  const [runner, layout, packageJson, platform] = await Promise.all([
+test("ships backend catalog, signed BFF and project metadata", async () => {
+  const [runner, proxy, layout, packageJson, platform, admin, openapi, migration, lessonMigration] = await Promise.all([
     readFile(new URL("../app/api/run/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/_lib/learny-backend.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
     readFile(new URL("../app/StudyPlatform.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/admin/AdminPanel.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../backend/openapi/openapi.yaml", import.meta.url), "utf8"),
+    readFile(new URL("../backend/migrations/00001_init.sql", import.meta.url), "utf8"),
+    readFile(new URL("../backend/migrations/00005_seed_lessons.sql", import.meta.url), "utf8"),
   ]);
 
-  assert.match(platform, /Изучение iOS/);
-  assert.match(platform, /Подготовка к собеседованиям iOS/);
-  assert.match(platform, /Изучение Go/);
-  assert.match(platform, /Подготовка к собеседованиям Go/);
   assert.match(platform, /МОК-ИНТЕРВЬЮ/);
   assert.match(platform, /<strong>Теория<\/strong>/);
   assert.match(platform, /<strong>Лайвкодинг<\/strong>/);
@@ -48,13 +48,26 @@ test("ships learning paths, code runner limits and project metadata", async () =
   assert.match(platform, /isLivecoding \? "livecoding-page"/);
   assert.match(platform, /isLivecoding \? "livecoding-runner"/);
   assert.match(platform, /!isLivecoding && <aside/);
-  assert.ok(platform.indexOf("Подготовка к собеседованиям iOS") < platform.indexOf("Изучение iOS"));
-  assert.ok(platform.indexOf("Подготовка к собеседованиям Go") < platform.indexOf("Изучение Go"));
   assert.match(platform, /MockInterviewView/);
-  assert.match(platform, /PATH_MODULES\[track\]\[selectedPath\]/);
-  assert.match(runner, /id: 83/);
-  assert.match(runner, /id: 107/);
-  assert.match(runner, /code\.length > 10_000/);
+  assert.match(platform, /loadCatalog/);
+  assert.match(platform, /createInterviewSession/);
+  assert.match(platform, /function SectionView/);
+  assert.match(platform, /saveProgress/);
+  assert.match(platform, /resumeTask/);
+  assert.doesNotMatch(platform, /ARC и управление памятью/);
+  assert.doesNotMatch(platform, /localStorage|PATH_MODULES|MOCK_QUESTIONS|LIVE_CODING_PROMPTS/);
+  assert.match(admin, /Структура/);
+  assert.match(admin, /Материал в Markdown/);
+  assert.match(runner, /proxyLearnyBackend\(request, "\/v1\/submissions"\)/);
+  assert.match(proxy, /X-Learny-Signature/);
+  assert.match(proxy, /MAX_BODY_SIZE = 64 \* 1024/);
+  assert.match(openapi, /\/v1\/admin\/questions:/);
+  assert.match(openapi, /\/v1\/admin\/lessons:/);
+  assert.match(openapi, /\/v1\/admin\/sections:/);
+  assert.match(openapi, /\/v1\/submissions:/);
+  assert.match(migration, /CREATE TABLE questions/);
+  assert.match(migration, /CREATE TABLE coding_tasks/);
+  assert.match(lessonMigration, /INSERT INTO lessons/);
   assert.match(layout, /og\.png/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
   await Promise.all([

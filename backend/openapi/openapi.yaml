@@ -1,0 +1,955 @@
+openapi: 3.1.0
+info:
+  title: Learny API
+  version: 1.0.0
+  description: Контракт каталога, прогресса, мок-интервью, запуска кода и админки Learny.
+servers:
+  - url: http://localhost:8080
+paths:
+  /healthz:
+    get:
+      operationId: health
+      responses:
+        "200": { $ref: "#/components/responses/Health" }
+  /readyz:
+    get:
+      operationId: ready
+      responses:
+        "200": { $ref: "#/components/responses/Health" }
+        "503": { $ref: "#/components/responses/Problem" }
+  /v1/catalog:
+    get:
+      operationId: getCatalog
+      responses:
+        "200":
+          description: Опубликованный каталог без эталонных решений.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Catalog" }
+  /v1/directions:
+    get:
+      operationId: listDirections
+      responses:
+        "200":
+          description: Направления
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Direction" }
+  /v1/directions/{direction}:
+    parameters:
+      - $ref: "#/components/parameters/Direction"
+    get:
+      operationId: getDirection
+      responses:
+        "200":
+          description: Направление
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Direction" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /v1/directions/{direction}/tracks/{track}:
+    parameters:
+      - $ref: "#/components/parameters/Direction"
+      - $ref: "#/components/parameters/Track"
+    get:
+      operationId: getTrack
+      responses:
+        "200":
+          description: Трек
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Track" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /v1/sections/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      operationId: getSection
+      responses:
+        "200":
+          description: Опубликованный раздел
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Section" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /v1/topics/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      operationId: getTopic
+      responses:
+        "200":
+          description: Опубликованная тема
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Topic" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /v1/lessons/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      operationId: getLesson
+      responses:
+        "200":
+          description: Опубликованный урок
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Lesson" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /v1/questions/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      operationId: getQuestion
+      responses:
+        "200":
+          description: Опубликованный вопрос
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Question" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /v1/coding-tasks/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      operationId: getCodingTask
+      responses:
+        "200":
+          description: Опубликованная задача без решения и скрытых тестов
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CodingTask" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /v1/me/progress:
+    get:
+      operationId: getProgress
+      security: [{ bffSignature: [] }]
+      responses:
+        "200":
+          description: Прогресс пользователя
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Progress" }
+        "401": { $ref: "#/components/responses/Problem" }
+  /v1/me/progress/{contentType}/{contentId}:
+    parameters:
+      - name: contentType
+        in: path
+        required: true
+        schema: { type: string, enum: [lesson, question, coding_task, topic, section] }
+      - name: contentId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    put:
+      operationId: putProgress
+      security: [{ bffSignature: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [not_started, in_progress, completed] }
+                lastPosition: { type: integer, minimum: 0, default: 0 }
+      responses:
+        "200":
+          description: Сохранённый прогресс
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Progress" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+  /v1/me/activity:
+    get:
+      operationId: getActivity
+      security: [{ bffSignature: [] }]
+      responses:
+        "200":
+          description: Последние изменения прогресса
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    maxItems: 50
+                    items: { $ref: "#/components/schemas/Progress" }
+        "401": { $ref: "#/components/responses/Problem" }
+  /v1/interview-sessions:
+    post:
+      operationId: createInterviewSession
+      security: [{ bffSignature: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [direction, mode, count]
+              properties:
+                direction: { type: string, enum: [ios, go] }
+                mode: { type: string, enum: [theory, livecoding] }
+                count: { type: integer, minimum: 1, maximum: 20 }
+      responses:
+        "201":
+          description: Зафиксированная сессия. Для livecoding сервер дополнительно ограничивает count значением 10.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InterviewSession" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+  /v1/interview-sessions/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      operationId: getInterviewSession
+      security: [{ bffSignature: [] }]
+      responses:
+        "200":
+          description: Сессия пользователя
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InterviewSession" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /v1/interview-sessions/{id}/items/{itemId}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+      - name: itemId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    put:
+      operationId: updateInterviewItem
+      security: [{ bffSignature: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                answer: { type: string, maxLength: 20000 }
+                code: { type: string, maxLength: 10000 }
+                durationSeconds: { type: integer, minimum: 0 }
+      responses:
+        "200":
+          description: Обновлённая сессия
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InterviewSession" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /v1/interview-sessions/{id}/complete:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    post:
+      operationId: completeInterviewSession
+      security: [{ bffSignature: [] }]
+      responses:
+        "200":
+          description: Завершённая сессия
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InterviewSession" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /v1/submissions:
+    post:
+      operationId: createSubmission
+      security: [{ bffSignature: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [language, code]
+              properties:
+                codingTaskId: { type: string, format: uuid }
+                interviewItemId: { type: string, format: uuid, description: Элемент активной лайвкодинг-сессии }
+                language: { type: string, enum: [swift, go] }
+                code: { type: string, minLength: 1, maxLength: 10000 }
+      responses:
+        "200":
+          description: Результат запуска и тестов
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SubmissionResult" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+        "429": { $ref: "#/components/responses/Problem" }
+        "502": { $ref: "#/components/responses/Problem" }
+  /v1/submissions/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      operationId: getSubmission
+      security: [{ bffSignature: [] }]
+      responses:
+        "200":
+          description: Попытка текущего пользователя
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Submission" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /v1/admin/catalog:
+    get:
+      operationId: getAdminCatalog
+      security: [{ bffSignature: [] }]
+      responses:
+        "200":
+          description: Каталог, включая draft и эталонные решения
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Catalog" }
+        "403": { $ref: "#/components/responses/Problem" }
+  /v1/admin/sections:
+    get:
+      operationId: listAdminSections
+      security: [{ bffSignature: [] }]
+      responses:
+        "200":
+          description: Разделы, включая черновики
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/Section" } }
+    post:
+      operationId: createAdminSection
+      security: [{ bffSignature: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SectionInput" }
+      responses:
+        "201":
+          description: Созданный раздел
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Section" }
+        "422": { $ref: "#/components/responses/Problem" }
+  /v1/admin/sections/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      operationId: getAdminSection
+      security: [{ bffSignature: [] }]
+      responses:
+        "200":
+          description: Раздел
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Section" }
+    put:
+      operationId: updateAdminSection
+      security: [{ bffSignature: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SectionInput" }
+      responses:
+        "200":
+          description: Обновлённый раздел
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Section" }
+    delete:
+      operationId: archiveAdminSection
+      security: [{ bffSignature: [] }]
+      responses:
+        "204": { description: Раздел архивирован }
+  /v1/admin/topics:
+    get:
+      operationId: listAdminTopics
+      security: [{ bffSignature: [] }]
+      responses:
+        "200":
+          description: Темы, включая черновики
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/Topic" } }
+    post:
+      operationId: createAdminTopic
+      security: [{ bffSignature: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TopicInput" }
+      responses:
+        "201":
+          description: Созданная тема
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Topic" }
+        "422": { $ref: "#/components/responses/Problem" }
+  /v1/admin/topics/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      operationId: getAdminTopic
+      security: [{ bffSignature: [] }]
+      responses:
+        "200":
+          description: Тема
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Topic" }
+    put:
+      operationId: updateAdminTopic
+      security: [{ bffSignature: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TopicInput" }
+      responses:
+        "200":
+          description: Обновлённая тема
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Topic" }
+    delete:
+      operationId: archiveAdminTopic
+      security: [{ bffSignature: [] }]
+      responses:
+        "204": { description: Тема архивирована }
+  /v1/admin/lessons:
+    get:
+      operationId: listAdminLessons
+      security: [{ bffSignature: [] }]
+      responses:
+        "200":
+          description: Уроки, включая черновики
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/Lesson" } }
+    post:
+      operationId: createAdminLesson
+      security: [{ bffSignature: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LessonInput" }
+      responses:
+        "201":
+          description: Созданный урок
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Lesson" }
+        "422": { $ref: "#/components/responses/Problem" }
+  /v1/admin/lessons/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      operationId: getAdminLesson
+      security: [{ bffSignature: [] }]
+      responses:
+        "200":
+          description: Урок
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Lesson" }
+    put:
+      operationId: updateAdminLesson
+      security: [{ bffSignature: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LessonInput" }
+      responses:
+        "200":
+          description: Обновлённый урок
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Lesson" }
+    delete:
+      operationId: archiveAdminLesson
+      security: [{ bffSignature: [] }]
+      responses:
+        "204": { description: Урок архивирован }
+  /v1/admin/questions:
+    get:
+      operationId: listAdminQuestions
+      security: [{ bffSignature: [] }]
+      responses:
+        "200":
+          description: Вопросы
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Question" }
+    post:
+      operationId: createAdminQuestion
+      security: [{ bffSignature: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/QuestionInput" }
+      responses:
+        "201":
+          description: Созданный вопрос
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Question" }
+        "422": { $ref: "#/components/responses/Problem" }
+  /v1/admin/questions/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      operationId: getAdminQuestion
+      security: [{ bffSignature: [] }]
+      responses:
+        "200":
+          description: Вопрос
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Question" }
+    put:
+      operationId: updateAdminQuestion
+      security: [{ bffSignature: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/QuestionInput" }
+      responses:
+        "200":
+          description: Вопрос
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Question" }
+    delete:
+      operationId: archiveAdminQuestion
+      security: [{ bffSignature: [] }]
+      responses:
+        "204": { description: Вопрос архивирован }
+  /v1/admin/coding-tasks:
+    get:
+      operationId: listAdminCodingTasks
+      security: [{ bffSignature: [] }]
+      responses:
+        "200":
+          description: Задачи
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/CodingTask" }
+    post:
+      operationId: createAdminCodingTask
+      security: [{ bffSignature: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CodingTaskInput" }
+      responses:
+        "201":
+          description: Созданная задача
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CodingTask" }
+  /v1/admin/coding-tasks/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      operationId: getAdminCodingTask
+      security: [{ bffSignature: [] }]
+      responses:
+        "200":
+          description: Задача
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CodingTask" }
+    put:
+      operationId: updateAdminCodingTask
+      security: [{ bffSignature: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CodingTaskInput" }
+      responses:
+        "200":
+          description: Задача
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CodingTask" }
+    delete:
+      operationId: archiveAdminCodingTask
+      security: [{ bffSignature: [] }]
+      responses:
+        "204": { description: Задача архивирована }
+  /v1/admin/coding-tasks/{id}/tests:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      operationId: listAdminCodingTaskTests
+      security: [{ bffSignature: [] }]
+      responses:
+        "200":
+          description: Тесты задачи, включая скрытые
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/CodingTaskTest" }
+    put:
+      operationId: replaceAdminCodingTaskTests
+      security: [{ bffSignature: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items]
+              properties:
+                items:
+                  type: array
+                  maxItems: 50
+                  items: { $ref: "#/components/schemas/CodingTaskTest" }
+      responses:
+        "200":
+          description: Сохранённые тесты
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/CodingTaskTest" }
+        "422": { $ref: "#/components/responses/Problem" }
+components:
+  securitySchemes:
+    bffSignature:
+      type: apiKey
+      in: header
+      name: X-Learny-Signature
+      description: HMAC-подпись trusted BFF; также требуются X-Learny-User-Id, X-Learny-User-Email и X-Learny-Timestamp.
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    Direction:
+      name: direction
+      in: path
+      required: true
+      schema: { type: string, enum: [ios, go] }
+    Track:
+      name: track
+      in: path
+      required: true
+      schema: { type: string, enum: [interview, learning] }
+  responses:
+    Health:
+      description: Состояние сервиса
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [status]
+            properties:
+              status: { type: string }
+    Problem:
+      description: Ошибка API
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ProblemEnvelope" }
+  schemas:
+    Catalog:
+      type: object
+      required: [directions, lessons, questions, codingTasks]
+      properties:
+        directions:
+          type: array
+          items: { $ref: "#/components/schemas/Direction" }
+        lessons:
+          type: array
+          items: { $ref: "#/components/schemas/Lesson" }
+        questions:
+          type: array
+          items: { $ref: "#/components/schemas/Question" }
+        codingTasks:
+          type: array
+          items: { $ref: "#/components/schemas/CodingTask" }
+    Direction:
+      type: object
+      required: [id, slug, shortName, name, position, status, tracks]
+      properties:
+        id: { type: string, format: uuid }
+        slug: { type: string, enum: [ios, go] }
+        shortName: { type: string }
+        name: { type: string }
+        position: { type: integer }
+        status: { $ref: "#/components/schemas/ContentStatus" }
+        tracks:
+          type: array
+          items: { $ref: "#/components/schemas/Track" }
+    Track:
+      type: object
+      required: [id, slug, title, description, position, status, sections]
+      properties:
+        id: { type: string, format: uuid }
+        slug: { type: string, enum: [interview, learning] }
+        title: { type: string }
+        description: { type: string }
+        position: { type: integer }
+        status: { $ref: "#/components/schemas/ContentStatus" }
+        sections:
+          type: array
+          items: { $ref: "#/components/schemas/Section" }
+    Section:
+      type: object
+      required: [id, trackId, slug, title, description, icon, position, status, itemCount, topics]
+      properties:
+        id: { type: string, format: uuid }
+        trackId: { type: string, format: uuid }
+        slug: { type: string }
+        title: { type: string }
+        description: { type: string }
+        icon: { type: string }
+        position: { type: integer }
+        status: { $ref: "#/components/schemas/ContentStatus" }
+        itemCount: { type: integer, minimum: 0 }
+        topics:
+          type: array
+          items: { $ref: "#/components/schemas/Topic" }
+    Topic:
+      type: object
+      required: [id, sectionId, slug, title, description, position, status]
+      properties:
+        id: { type: string, format: uuid }
+        sectionId: { type: string, format: uuid }
+        slug: { type: string }
+        title: { type: string }
+        description: { type: string }
+        position: { type: integer }
+        status: { $ref: "#/components/schemas/ContentStatus" }
+    SectionInput:
+      type: object
+      required: [trackId, slug, title, status]
+      properties:
+        trackId: { type: string, format: uuid }
+        slug: { type: string, pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$" }
+        title: { type: string, minLength: 2, maxLength: 160 }
+        description: { type: string, maxLength: 1000 }
+        icon: { type: string, maxLength: 20 }
+        position: { type: integer, minimum: 0 }
+        status: { $ref: "#/components/schemas/ContentStatus" }
+    TopicInput:
+      type: object
+      required: [sectionId, slug, title, status]
+      properties:
+        sectionId: { type: string, format: uuid }
+        slug: { type: string, pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$" }
+        title: { type: string, minLength: 2, maxLength: 160 }
+        description: { type: string, maxLength: 1000 }
+        position: { type: integer, minimum: 0 }
+        status: { $ref: "#/components/schemas/ContentStatus" }
+    Lesson:
+      allOf:
+        - $ref: "#/components/schemas/LessonInput"
+        - type: object
+          required: [id, trackSlug, sectionId, directionSlug, sectionTitle]
+          properties:
+            id: { type: string, format: uuid }
+            trackSlug: { type: string, enum: [interview, learning] }
+            sectionId: { type: string, format: uuid }
+            directionSlug: { type: string, enum: [ios, go] }
+            sectionTitle: { type: string }
+    LessonInput:
+      type: object
+      required: [topicId, slug, title, bodyMarkdown, status]
+      properties:
+        topicId: { type: string, format: uuid }
+        slug: { type: string, pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$" }
+        title: { type: string, minLength: 3, maxLength: 160 }
+        bodyMarkdown: { type: string, minLength: 10, maxLength: 200000 }
+        durationMinutes: { type: integer, minimum: 0, maximum: 600 }
+        position: { type: integer, minimum: 0 }
+        status: { $ref: "#/components/schemas/ContentStatus" }
+    Question:
+      type: object
+      required: [id, topicId, prompt, difficulty, position, status]
+      properties:
+        id: { type: string, format: uuid }
+        topicId: { type: string, format: uuid }
+        trackSlug: { type: string, enum: [interview, learning] }
+        sectionId: { type: string, format: uuid }
+        directionSlug: { type: string, enum: [ios, go] }
+        sectionTitle: { type: string }
+        prompt: { type: string }
+        explanation: { type: string }
+        referenceAnswer: { type: string, description: Только admin API }
+        difficulty: { type: integer, minimum: 1, maximum: 5 }
+        position: { type: integer, minimum: 0 }
+        status: { $ref: "#/components/schemas/ContentStatus" }
+    QuestionInput:
+      type: object
+      required: [topicId, prompt, difficulty, status]
+      properties:
+        topicId: { type: string, format: uuid }
+        prompt: { type: string, minLength: 10, maxLength: 4000 }
+        explanation: { type: string }
+        referenceAnswer: { type: string }
+        difficulty: { type: integer, minimum: 1, maximum: 5 }
+        position: { type: integer, minimum: 0 }
+        status: { $ref: "#/components/schemas/ContentStatus" }
+    CodingTask:
+      allOf:
+        - $ref: "#/components/schemas/CodingTaskInput"
+        - type: object
+          required: [id, directionSlug, sectionTitle, status]
+          properties:
+            id: { type: string, format: uuid }
+            directionSlug: { type: string, enum: [ios, go] }
+            trackSlug: { type: string, enum: [interview, learning] }
+            sectionId: { type: string, format: uuid }
+            sectionTitle: { type: string }
+            referenceSolution: { type: string, description: Только admin API }
+    CodingTaskInput:
+      type: object
+      required: [topicId, slug, title, statementMarkdown, language, starterCode, difficulty, status]
+      properties:
+        topicId: { type: string, format: uuid }
+        slug: { type: string, pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$" }
+        title: { type: string, minLength: 3, maxLength: 160 }
+        statementMarkdown: { type: string, minLength: 10 }
+        hint: { type: string }
+        language: { type: string, enum: [swift, go] }
+        starterCode: { type: string, maxLength: 10000 }
+        referenceSolution: { type: string }
+        timeLimitMs: { type: integer, minimum: 100, maximum: 10000, default: 3000 }
+        memoryLimitKb: { type: integer, minimum: 16000, maximum: 512000, default: 128000 }
+        difficulty: { type: integer, minimum: 1, maximum: 5 }
+        position: { type: integer, minimum: 0 }
+        status: { $ref: "#/components/schemas/ContentStatus" }
+    CodingTaskTest:
+      type: object
+      required: [stdin, expectedStdout, hidden, position]
+      properties:
+        id: { type: string, format: uuid, readOnly: true }
+        stdin: { type: string, maxLength: 10000 }
+        expectedStdout: { type: string, maxLength: 10000 }
+        hidden: { type: boolean, default: true }
+        position: { type: integer, minimum: 1 }
+    Progress:
+      type: object
+      required: [contentType, contentId, status, lastPosition, updatedAt]
+      properties:
+        contentType: { type: string, enum: [lesson, question, coding_task, topic, section] }
+        contentId: { type: string, format: uuid }
+        status: { type: string, enum: [not_started, in_progress, completed] }
+        lastPosition: { type: integer, minimum: 0 }
+        startedAt: { type: string, format: date-time }
+        completedAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    InterviewSession:
+      type: object
+      required: [id, directionSlug, mode, requestedCount, status, startedAt, items]
+      properties:
+        id: { type: string, format: uuid }
+        directionSlug: { type: string, enum: [ios, go] }
+        mode: { type: string, enum: [theory, livecoding] }
+        requestedCount: { type: integer, minimum: 1, maximum: 20 }
+        status: { type: string, enum: [active, completed, abandoned] }
+        startedAt: { type: string, format: date-time }
+        completedAt: { type: string, format: date-time }
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/InterviewItem" }
+    InterviewItem:
+      type: object
+      required: [id, position, snapshot, answer, code]
+      properties:
+        id: { type: string, format: uuid }
+        position: { type: integer, minimum: 1 }
+        questionId: { type: string, format: uuid }
+        codingTaskId: { type: string, format: uuid }
+        snapshot: { type: object, additionalProperties: true }
+        answer: { type: string }
+        code: { type: string }
+        passed: { type: boolean }
+    Submission:
+      type: object
+      required: [id, language, status, stdout, stderr, passedTests, totalTests, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        codingTaskId: { type: string, format: uuid }
+        language: { type: string, enum: [swift, go] }
+        status: { type: string, enum: [queued, running, passed, failed, error] }
+        stdout: { type: string }
+        stderr: { type: string }
+        passedTests: { type: integer, minimum: 0 }
+        totalTests: { type: integer, minimum: 0 }
+        durationMs: { type: integer, minimum: 0 }
+        createdAt: { type: string, format: date-time }
+        finishedAt: { type: string, format: date-time }
+    SubmissionResult:
+      type: object
+      required: [ok, stdout, stderr, compiler, submission]
+      properties:
+        ok: { type: boolean }
+        stdout: { type: string }
+        stderr: { type: string }
+        compiler: { type: string }
+        submission: { $ref: "#/components/schemas/Submission" }
+    ContentStatus:
+      type: string
+      enum: [draft, published, archived]
+    ProblemEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            fields:
+              type: object
+              additionalProperties: { type: string }

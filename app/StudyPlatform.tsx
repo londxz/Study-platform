@@ -1,10 +1,25 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import CodeEditorImport from "react-simple-code-editor";
 import Prism from "prismjs";
 import "prismjs/components/prism-go";
 import "prismjs/components/prism-swift";
+import {
+  createInterviewSession,
+  finishInterviewSession,
+  loadCatalog,
+  loadProgress,
+  saveProgress,
+  saveInterviewItem,
+  type InterviewSession,
+  type LearnCatalog,
+  type LearnCodingTask,
+  type LearnProgress,
+  type MockMode,
+  type PathId,
+  type TrackId,
+} from "./learny-api";
 
 // vinext keeps CommonJS default exports wrapped in the browser bundle.
 // Unwrap the editor component so React receives the actual forwardRef value.
@@ -13,23 +28,25 @@ const CodeEditor = (
   ?? CodeEditorImport
 ) as typeof CodeEditorImport;
 
-type TrackId = "ios" | "go";
-type PathId = "learning" | "interview";
-type MockMode = "theory" | "livecoding";
-type Screen = "home" | "track" | "practice" | "mock" | "progress";
-
-type CustomSection = {
-  id: string;
-  track: TrackId;
-  title: string;
-  description: string;
-};
+type Screen = "home" | "track" | "section" | "practice" | "mock" | "progress";
 
 type RunResult = {
   ok: boolean;
   stdout: string;
   stderr: string;
   compiler: string;
+};
+
+type PracticeTask = {
+  id?: string;
+  sessionItemId?: string;
+  title: string;
+  category: string;
+  language: "swift" | "go";
+  compiler: string;
+  task: string;
+  hint: string;
+  code: string;
 };
 
 function highlightCode(source: string, track: TrackId) {
@@ -42,294 +59,12 @@ const TRACKS = {
   ios: {
     short: "iOS",
     name: "iOS Development",
-    kicker: "INTERVIEW TRACK",
-    description: "Глубокая подготовка к техническим интервью и разбор задач на Swift.",
-    color: "orange",
-    total: 64,
-    baseDone: 18,
   },
   go: {
     short: "Go",
     name: "Go Development",
-    kicker: "FROM ZERO TO BACKEND",
-    description: "Пошаговый путь от синтаксиса и основ языка до конкурентного backend.",
-    color: "cyan",
-    total: 82,
-    baseDone: 7,
   },
 } as const;
-
-const TRACK_PATHS = {
-  ios: [
-    {
-      id: "interview" as const,
-      index: "01",
-      kicker: "ИНТЕРВЬЮ",
-      title: "Подготовка к собеседованиям iOS",
-      description: "Теоретические вопросы и практические задачи с технических интервью.",
-      total: 64,
-      done: 19,
-    },
-    {
-      id: "learning" as const,
-      index: "02",
-      kicker: "УЧЕБНЫЙ ПЛАН",
-      title: "Изучение iOS",
-      description: "Материал, темы, практические задачи и проекты для системного изучения iOS.",
-      total: 48,
-      done: 0,
-    },
-  ],
-  go: [
-    {
-      id: "interview" as const,
-      index: "01",
-      kicker: "ИНТЕРВЬЮ",
-      title: "Подготовка к собеседованиям Go",
-      description: "Теория, вопросы по runtime и практические backend-задачи с интервью.",
-      total: 36,
-      done: 0,
-    },
-    {
-      id: "learning" as const,
-      index: "02",
-      kicker: "УЧЕБНЫЙ ПЛАН",
-      title: "Изучение Go",
-      description: "Последовательный путь от синтаксиса до конкурентного backend и баз данных.",
-      total: 58,
-      done: 7,
-    },
-  ],
-} as const;
-
-const PATH_MODULES = {
-  ios: {
-    learning: [
-      { title: "Swift: основы", topics: 10, done: 0, icon: "{ }", description: "Типы, функции, коллекции, optional и обработка ошибок" },
-      { title: "ООП и протоколы", topics: 8, done: 0, icon: "◇", description: "Структуры, классы, протоколы, generics и композиция" },
-      { title: "UIKit", topics: 9, done: 0, icon: "▦", description: "Lifecycle, layout, navigation и переиспользуемые экраны" },
-      { title: "SwiftUI", topics: 8, done: 0, icon: "◫", description: "State, bindings, environment, navigation и rendering" },
-      { title: "Сеть и данные", topics: 7, done: 0, icon: "◎", description: "URLSession, Codable, кэш, Core Data и offline-first" },
-      { title: "Тесты и проект", topics: 6, done: 0, icon: "✓", description: "Unit/UI tests и итоговое приложение с API" },
-    ],
-    interview: [
-      { title: "Swift Core", topics: 12, done: 8, icon: "{ }", description: "Value/reference types, generics, protocols и dispatch" },
-      { title: "ARC и память", topics: 8, done: 5, icon: "∞", description: "Strong, weak, unowned, capture lists и retain cycles" },
-      { title: "Concurrency", topics: 10, done: 2, icon: "⇄", description: "GCD, async/await, actors и Sendable" },
-      { title: "UIKit & SwiftUI", topics: 9, done: 1, icon: "▦", description: "Lifecycle, layout, state и rendering" },
-      { title: "Архитектура", topics: 8, done: 2, icon: "◇", description: "MVC, MVVM, Coordinator и dependency injection" },
-      { title: "System Design", topics: 7, done: 0, icon: "⌘", description: "Сеть, кэш, офлайн-режим и наблюдаемость" },
-    ],
-  },
-  go: {
-    learning: [
-      { title: "Основы языка", topics: 12, done: 5, icon: "{ }", description: "Типы, функции, структуры, интерфейсы и ошибки" },
-      { title: "Коллекции и память", topics: 10, done: 1, icon: "[]", description: "Slices, maps, pointers, escape analysis и GC" },
-      { title: "Горутины", topics: 12, done: 1, icon: "⇄", description: "Channels, select, context и sync primitives" },
-      { title: "Backend", topics: 11, done: 0, icon: "◎", description: "HTTP, middleware, REST, gRPC и конфигурация" },
-      { title: "Хранение данных", topics: 8, done: 0, icon: "▤", description: "SQL, транзакции, индексы, Redis и миграции" },
-      { title: "Тесты и проект", topics: 5, done: 0, icon: "✓", description: "Table tests, race detector, benchmarks и итоговый сервис" },
-    ],
-    interview: [
-      { title: "Язык и интерфейсы", topics: 7, done: 0, icon: "{ }", description: "Методы, embedding, nil, errors и tricky-вопросы" },
-      { title: "Runtime и память", topics: 6, done: 0, icon: "∞", description: "Scheduler, stack growth, escape analysis и GC" },
-      { title: "Конкурентность", topics: 7, done: 0, icon: "⇄", description: "Channels, select, context, mutex и race conditions" },
-      { title: "Backend и сети", topics: 6, done: 0, icon: "◎", description: "HTTP, TCP, middleware, gRPC и graceful shutdown" },
-      { title: "Базы данных", topics: 5, done: 0, icon: "▤", description: "SQL, транзакции, индексы и конкурентный доступ" },
-      { title: "System Design", topics: 5, done: 0, icon: "◇", description: "Очереди, кэш, масштабирование и отказоустойчивость" },
-    ],
-  },
-} as const;
-
-const PRACTICE = {
-  ios: {
-    learning: {
-      title: "Коллекции и преобразование данных",
-      category: "iOS · Изучение iOS",
-      language: "swift" as const,
-      compiler: "Swift 5.2.3",
-      task: "Получите названия всех непрочитанных статей через filter и map, затем выведите их по одной строке.",
-      hint: "Сначала отфильтруйте элементы по isRead, затем преобразуйте результат в массив строк.",
-      code: `struct Article {
-    let title: String
-    let isRead: Bool
-}
-
-let articles = [
-    Article(title: "Value types", isRead: true),
-    Article(title: "Protocols", isRead: false),
-    Article(title: "Concurrency", isRead: false)
-]
-
-let unreadTitles = articles
-    .filter { !$0.isRead }
-    .map { $0.title }
-
-unreadTitles.forEach { print($0) }`,
-    },
-    interview: {
-      title: "Управление памятью и capture list",
-      category: "iOS · Подготовка к собеседованиям",
-      language: "swift" as const,
-      compiler: "Swift 5.2.3",
-      task: "Исправьте замыкание так, чтобы объект DownloadService освобождался после выполнения. Затем запустите код и проверьте deinit в консоли.",
-      hint: "Замыкание хранится внутри самого объекта. Используйте capture list и не оставляйте обработчик висеть после вызова.",
-      code: `final class DownloadService {
-    var onComplete: (() -> Void)?
-
-    deinit {
-        print("service released")
-    }
-
-    func start() {
-        onComplete = { [weak self] in
-            print("download complete")
-            self?.onComplete = nil
-        }
-    }
-}
-
-var service: DownloadService? = DownloadService()
-service?.start()
-service?.onComplete?()
-service = nil`,
-    },
-  },
-  go: {
-    learning: {
-      title: "Передача результата через channel",
-      category: "Go · Изучение Go",
-      language: "go" as const,
-      compiler: "Go 1.23.5",
-      task: "Запустите worker в отдельной горутине, безопасно получите число из канала и выведите result: 42 без sleep и глобальных переменных.",
-      hint: "Небуферизованный канал синхронизирует отправителя и получателя. Чтение можно выполнить прямо внутри fmt.Printf.",
-      code: `package main
-
-import "fmt"
-
-func worker(result chan<- int) {
-	result <- 42
-}
-
-func main() {
-	result := make(chan int)
-	go worker(result)
-	fmt.Printf("result: %d\\n", <-result)
-}`,
-    },
-    interview: {
-      title: "Гонки данных и синхронизация",
-      category: "Go · Подготовка к собеседованиям",
-      language: "go" as const,
-      compiler: "Go 1.23.5",
-      task: "Объясните, почему инкремент counter небезопасен, и исправьте код с помощью sync.Mutex или atomic.",
-      hint: "Операция counter++ состоит из чтения, изменения и записи. Эти действия должны быть синхронизированы.",
-      code: `package main
-
-import (
-	"fmt"
-	"sync"
-)
-
-func main() {
-	var wg sync.WaitGroup
-	counter := 0
-
-	for i := 0; i < 1000; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			counter++
-		}()
-	}
-
-	wg.Wait()
-	fmt.Println(counter)
-}`,
-    },
-  },
-};
-
-const MOCK_QUESTIONS = {
-  ios: [
-    "В чём практическая разница между value type и reference type в Swift?",
-    "Как ARC освобождает память и из-за чего возникает retain cycle?",
-    "Когда использовать weak, а когда unowned ссылку?",
-    "Чем Task, async let и TaskGroup отличаются друг от друга?",
-    "Опишите жизненный цикл UIViewController и типичные ошибки в нём.",
-    "Как бы вы спроектировали кэширование изображений для большой ленты?",
-    "Чем protocol witness table отличается от dynamic dispatch через Objective-C runtime?",
-    "Как Copy-on-Write работает в стандартных коллекциях Swift?",
-    "Почему escaping-замыкание может потребовать явного self?",
-    "Чем actor отличается от serial DispatchQueue?",
-    "Что такое Sendable и какие проблемы он помогает обнаружить?",
-    "Как устроена обработка ошибок через throws, Result и async throws?",
-    "Какие этапы проходит Auto Layout при вычислении и применении размеров?",
-    "Как SwiftUI определяет, какую часть дерева представлений нужно обновить?",
-    "Когда выбрать struct, final class или actor для новой модели?",
-    "Как организовать dependency injection без глобального service locator?",
-    "Какие уровни тестирования нужны iOS-приложению и что проверять на каждом?",
-    "Как сделать сетевой слой устойчивым к отмене, повторным запросам и потере сети?",
-    "Что происходит с приложением при переходе между active, inactive и background?",
-    "Как спроектировать офлайн-синхронизацию с разрешением конфликтов?",
-  ],
-  go: [
-    "Как устроен interface в Go и почему interface с nil-указателем может быть не nil?",
-    "Как планировщик Go распределяет goroutine между системными потоками?",
-    "Кто должен закрывать channel и что произойдёт при записи в закрытый channel?",
-    "Как правильно распространять отмену операции через context?",
-    "Чем длина slice отличается от capacity и когда происходит перевыделение массива?",
-    "Как бы вы спроектировали graceful shutdown для HTTP-сервиса?",
-    "Чем value receiver отличается от pointer receiver и как это влияет на method set?",
-    "Как работает defer и в каком порядке вычисляются его аргументы?",
-    "Когда использовать errors.Is, errors.As и оборачивание через %w?",
-    "Из-за чего возникает data race и почему mutex не всегда лучший вариант?",
-    "Как избежать утечки goroutine в конвейере с несколькими стадиями?",
-    "Чем unbuffered channel отличается от buffered channel с точки зрения синхронизации?",
-    "Как map ведёт себя при конкурентном чтении и записи?",
-    "Что такое escape analysis и как он связан с аллокациями в heap?",
-    "Как garbage collector Go влияет на latency сервиса?",
-    "Как правильно ограничить параллелизм обработки большого потока задач?",
-    "Какие гарантии дают транзакции и уровни изоляции базы данных?",
-    "Как организовать retries, timeout и idempotency для внешнего API?",
-    "Как профилировать CPU, память и блокировки в Go-сервисе?",
-    "Как спроектировать сервис, который корректно переживает частичные отказы?",
-  ],
-} as const;
-
-const LIVE_CODING_PROMPTS = {
-  ios: [
-    ["Управление памятью", "Исправьте замыкание так, чтобы объект освобождался после выполнения.", "Используйте capture list и очистите обработчик после вызова."],
-    ["Уникальные элементы", "Удалите дубликаты из массива Int, сохранив исходный порядок.", "Храните уже встреченные значения в Set."],
-    ["Первый уникальный символ", "Найдите первый символ строки, который встречается ровно один раз.", "Посчитайте частоты, затем пройдите строку повторно."],
-    ["Группировка моделей", "Сгруппируйте пользователей по городу и отсортируйте имена внутри групп.", "Используйте Dictionary(grouping:by:) и mapValues."],
-    ["Безопасный декодинг", "Декодируйте массив JSON так, чтобы одна повреждённая запись не ломала остальные.", "Обрабатывайте ошибку каждой записи отдельно."],
-    ["Debounce поиска", "Реализуйте debounce: предыдущий запланированный поиск должен отменяться.", "Храните и отменяйте текущую отложенную работу."],
-    ["Потокобезопасный счётчик", "Защитите счётчик от одновременного изменения из нескольких очередей.", "Изолируйте состояние очередью или блокировкой."],
-    ["LRU-кэш", "Реализуйте get и put для LRU-кэша за O(1).", "Соедините словарь с двусвязным списком."],
-    ["Параллельная загрузка", "Соберите результаты независимых загрузок, сохранив исходный порядок.", "Свяжите каждый результат с индексом запроса."],
-    ["Diff коллекций", "Найдите добавленные, удалённые и общие идентификаторы двух массивов.", "Используйте Set и операции difference и intersection."],
-  ],
-  go: [
-    ["Гонки данных", "Найдите data race в счётчике и исправьте её с помощью Mutex или atomic.", "Операция инкремента должна быть синхронизирована."],
-    ["Worker pool", "Реализуйте worker pool с фиксированным числом воркеров.", "Закройте канал задач и дождитесь воркеров через WaitGroup."],
-    ["Отмена через context", "Остановите долгую операцию при отмене context без утечки goroutine.", "Проверяйте ctx.Done() в select."],
-    ["Безопасный кэш", "Реализуйте конкурентно безопасный in-memory кэш с Get и Set.", "Используйте RWMutex."],
-    ["Merge channels", "Объедините несколько каналов в один и корректно закройте результат.", "По goroutine на вход и WaitGroup для закрытия."],
-    ["Дедупликация", "Удалите дубликаты строк, сохранив порядок первого появления.", "Используйте map[string]struct{} как множество."],
-    ["HTTP middleware", "Добавьте request ID и измерение времени обработки запроса.", "Оберните http.Handler через http.HandlerFunc."],
-    ["Лимит параллелизма", "Обработайте URL параллельно, но не более трёх одновременно.", "Используйте buffered channel как семафор."],
-    ["Graceful shutdown", "Завершите HTTP-сервер по сигналу ОС без обрыва активных запросов.", "Используйте signal.NotifyContext и Server.Shutdown."],
-    ["LRU-кэш", "Реализуйте Get и Put для LRU-кэша за O(1).", "Используйте map и container/list."],
-  ],
-} as const;
-
-const SEARCH_ITEMS = [
-  ...PATH_MODULES.ios.learning.map((item) => ({ ...item, track: "ios" as TrackId })),
-  ...PATH_MODULES.ios.interview.map((item) => ({ ...item, track: "ios" as TrackId })),
-  ...PATH_MODULES.go.learning.map((item) => ({ ...item, track: "go" as TrackId })),
-  ...PATH_MODULES.go.interview.map((item) => ({ ...item, track: "go" as TrackId })),
-];
 
 function Brand() {
   return (
@@ -344,36 +79,43 @@ export function StudyPlatform() {
   const [screen, setScreen] = useState<Screen>("home");
   const [track, setTrack] = useState<TrackId>("ios");
   const [path, setPath] = useState<PathId>("learning");
+  const [practiceSectionId, setPracticeSectionId] = useState<string | null>(null);
   const [mockMode, setMockMode] = useState<MockMode>("theory");
   const [interviewTaskCount, setInterviewTaskCount] = useState(1);
-  const [customSections, setCustomSections] = useState<CustomSection[]>([]);
-  const [completed, setCompleted] = useState<string[]>([]);
-  const [sectionModal, setSectionModal] = useState(false);
+  const [catalog, setCatalog] = useState<LearnCatalog | null>(null);
+  const [progress, setProgress] = useState<LearnProgress[]>([]);
+  const [catalogError, setCatalogError] = useState("");
+  const [interviewSession, setInterviewSession] = useState<InterviewSession | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [mobileNav, setMobileNav] = useState(false);
-  const [hydrated, setHydrated] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      try {
-        setCustomSections(JSON.parse(localStorage.getItem("learny-sections") || "[]"));
-        setCompleted(JSON.parse(localStorage.getItem("learny-completed") || "[]"));
-      } catch {
-        setCustomSections([]);
-        setCompleted([]);
-      }
-      setHydrated(true);
-    }, 0);
-    return () => window.clearTimeout(timer);
+  const refreshProgress = useCallback(async () => {
+    try { setProgress(await loadProgress()); } catch { /* public catalog still works without a signed-in user */ }
+  }, []);
+
+  const refreshCatalog = useCallback(async () => {
+    try {
+      setCatalog(await loadCatalog());
+      setCatalogError("");
+    } catch (error) {
+      setCatalogError(error instanceof Error ? error.message : "Не удалось загрузить материалы");
+    }
   }, []);
 
   useEffect(() => {
-    if (!hydrated) return;
-    localStorage.setItem("learny-sections", JSON.stringify(customSections));
-    localStorage.setItem("learny-completed", JSON.stringify(completed));
-  }, [customSections, completed, hydrated]);
+    let active = true;
+    void loadCatalog().then((value) => {
+      if (!active) return;
+      setCatalog(value);
+      setCatalogError("");
+    }, (error: unknown) => {
+      if (active) setCatalogError(error instanceof Error ? error.message : "Не удалось загрузить материалы");
+    });
+    void loadProgress().then((value) => { if (active) setProgress(value); }, () => undefined);
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -383,7 +125,6 @@ export function StudyPlatform() {
       }
       if (event.key === "Escape") {
         setSearchOpen(false);
-        setSectionModal(false);
         setMobileNav(false);
       }
     };
@@ -402,15 +143,8 @@ export function StudyPlatform() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const addSection = (title: string, description: string, targetTrack: TrackId) => {
-    setCustomSections((items) => [
-      ...items,
-      { id: `custom-${Date.now()}`, title, description, track: targetTrack },
-    ]);
-    setTrack(targetTrack);
-    setSectionModal(false);
-    setScreen("track");
-  };
+  const searchItems = useMemo(() => catalog?.directions.flatMap((direction) => direction.tracks.flatMap((item) =>
+    item.sections.map((section) => ({ title: section.title, description: section.description, track: direction.slug })))) ?? [], [catalog]);
 
   return (
     <main className={`app-shell screen-${screen}`}>
@@ -419,12 +153,14 @@ export function StudyPlatform() {
       <div className="ambient ambient-two" aria-hidden="true" />
       <div className="ambient ambient-three" aria-hidden="true" />
 
+      {catalogError && <button className="backend-status" type="button" onClick={() => void refreshCatalog()}>Материалы недоступны · повторить</button>}
+
       <header className="topbar">
         <button className="brand-button" onClick={() => navigate("home")} aria-label="Learny — на главную">
           <Brand />
         </button>
         <nav className={`main-nav ${mobileNav ? "mobile-open" : ""}`} aria-label="Основная навигация">
-          <button className={["home", "track", "practice", "mock"].includes(screen) ? "active" : ""} onClick={() => navigate("home")}>Обучение</button>
+          <button className={["home", "track", "section", "practice", "mock"].includes(screen) ? "active" : ""} onClick={() => navigate("home")}>Обучение</button>
           <button className={screen === "progress" ? "active" : ""} onClick={() => navigate("progress")}>Прогресс</button>
         </nav>
         <div className="header-actions">
@@ -442,10 +178,12 @@ export function StudyPlatform() {
 
       {screen === "home" && (
         <Dashboard
-          completed={completed}
+          catalog={catalog}
+          progress={progress}
           onOpenTrack={(id) => navigate("track", id)}
-          onPractice={(id, selectedPath = "interview") => {
+          onPractice={(id, selectedPath = "interview", sectionId = null) => {
             setPath(selectedPath);
+            setPracticeSectionId(sectionId);
             setInterviewTaskCount(1);
             navigate("practice", id);
           }}
@@ -455,29 +193,51 @@ export function StudyPlatform() {
         <TrackView
           key={track}
           track={track}
+          catalog={catalog}
+          progress={progress}
           onBack={() => navigate("home")}
-          onPractice={(selectedPath) => {
+          onOpenSection={(selectedPath, sectionId) => {
             setPath(selectedPath);
-            setInterviewTaskCount(1);
-            navigate("practice", track);
+            setPracticeSectionId(sectionId);
+            navigate("section", track);
           }}
           onMockInterview={(mode) => {
             setMockMode(mode);
+            setInterviewSession(null);
             setPath("interview");
             navigate("mock", track);
           }}
         />
       )}
-      {screen === "practice" && (
-        <PracticeView
-          key={`${track}-${path}-${interviewTaskCount}`}
+      {screen === "section" && practiceSectionId && (
+        <SectionView
           track={track}
           path={path}
-          completed={completed.includes(`${track}-${path}-practice`)}
+          sectionId={practiceSectionId}
+          catalog={catalog}
+          progress={progress}
+          onBack={() => navigate("track", track)}
+          onPractice={() => {
+            setInterviewSession(null);
+            setInterviewTaskCount(1);
+            navigate("practice", track);
+          }}
+          onComplete={() => void refreshProgress()}
+        />
+      )}
+      {screen === "practice" && (
+        <PracticeView
+          key={`${track}-${path}-${practiceSectionId ?? "all"}-${interviewSession?.id ?? interviewTaskCount}`}
+          track={track}
+          path={path}
+          sectionId={practiceSectionId}
+          catalog={catalog}
+          progress={progress}
+          interviewSession={interviewSession}
           sessionCount={path === "interview" ? interviewTaskCount : 1}
           onTrackChange={setTrack}
-          onBack={() => navigate("track", track)}
-          onComplete={() => setCompleted((items) => items.includes(`${track}-${path}-practice`) ? items : [...items, `${track}-${path}-practice`])}
+          onBack={() => navigate(practiceSectionId ? "section" : "track", track)}
+          onComplete={() => void refreshProgress()}
         />
       )}
       {screen === "mock" && (
@@ -486,20 +246,21 @@ export function StudyPlatform() {
           track={track}
           mode={mockMode}
           onBack={() => navigate("track", track)}
-          onStartLivecoding={(count) => {
+          onStartLivecoding={(session) => {
             setPath("interview");
-            setInterviewTaskCount(count);
+            setPracticeSectionId(null);
+            setInterviewTaskCount(session.items.length);
+            setInterviewSession(session);
             navigate("practice", track);
           }}
         />
       )}
-      {screen === "progress" && <ProgressView completed={completed} onOpenTrack={(id) => navigate("track", id)} />}
-
-      {sectionModal && <AddSectionModal defaultTrack={track} onClose={() => setSectionModal(false)} onSubmit={addSection} />}
+      {screen === "progress" && <ProgressView catalog={catalog} progress={progress} onOpenTrack={(id) => navigate("track", id)} />}
       {searchOpen && (
         <SearchModal
           query={search}
           inputRef={searchRef}
+          items={searchItems}
           onQuery={setSearch}
           onClose={() => setSearchOpen(false)}
           onSelect={(id) => {
@@ -512,11 +273,15 @@ export function StudyPlatform() {
   );
 }
 
-function Dashboard({ completed, onOpenTrack, onPractice }: {
-  completed: string[];
+function Dashboard({ catalog, progress, onOpenTrack, onPractice }: {
+  catalog: LearnCatalog | null;
+  progress: LearnProgress[];
   onOpenTrack: (id: TrackId) => void;
-  onPractice: (id: TrackId, path?: PathId) => void;
+  onPractice: (id: TrackId, path?: PathId, sectionId?: string | null) => void;
 }) {
+  const latestTaskID = progress.find((item) => item.contentType === "coding_task")?.contentId;
+  const resumeTask = catalog?.codingTasks.find((item) => item.id === latestTaskID) ?? catalog?.codingTasks[0];
+  const sectionTaskCount = resumeTask ? catalog?.codingTasks.filter((item) => item.sectionId === resumeTask.sectionId).length ?? 0 : 0;
   return (
     <div className="page-wrap" id="top">
       <section className="hero" aria-labelledby="hero-title">
@@ -538,18 +303,20 @@ function Dashboard({ completed, onOpenTrack, onPractice }: {
         <div className="track-grid">
           {(Object.keys(TRACKS) as TrackId[]).map((id) => {
             const item = TRACKS[id];
-            const done = item.baseDone + (completed.some((entry) => entry.startsWith(`${id}-`)) ? 1 : 0);
-            const percent = Math.round((done / item.total) * 100);
+            const direction = catalog?.directions.find((entry) => entry.slug === id);
+            const total = direction ? direction.tracks.flatMap((entry) => entry.sections).reduce((sum, section) => sum + section.itemCount, 0) : 0;
+            const done = completedForDirection(catalog, progress, id);
+            const percent = total ? Math.round((done / total) * 100) : 0;
             return (
-              <button className={`track-card ${id}-card glass-panel`} type="button" onClick={() => onOpenTrack(id)} key={id} aria-label={`Открыть направление ${item.name}`}>
+              <button className={`track-card ${id}-card glass-panel`} type="button" onClick={() => onOpenTrack(id)} key={id} aria-label={`Открыть направление ${direction?.name ?? item.name}`}>
                 <span className="track-card-top">
                   <span className={`track-logo ${id}-logo`} aria-hidden="true">{item.short}</span>
                   <span className={`language-logo ${id === "ios" ? "swift" : "go"}`} aria-hidden="true" />
                 </span>
                 <span className="track-copy">
-                  <span className="track-title">{item.name}</span>
+                  <span className="track-title">{direction?.name ?? item.name}</span>
                 </span>
-                <span className="progress-row"><span>Пройдено {done} из {item.total} тем</span><strong>{percent}%</strong></span>
+                <span className="progress-row"><span>Пройдено {done} из {total} материалов</span><strong>{percent}%</strong></span>
                 <span className="progress-bar" aria-label={`Прогресс ${item.short}: ${percent}%`}><span style={{ width: `${percent}%` }} /></span>
                 <span className="track-link">Открыть направление <span aria-hidden="true">↗</span></span>
               </button>
@@ -558,32 +325,46 @@ function Dashboard({ completed, onOpenTrack, onPractice }: {
         </div>
       </section>
 
-      <section className="resume-section" aria-labelledby="last-task-title">
+      {resumeTask && <section className="resume-section" aria-labelledby="last-task-title">
         <div className="section-heading compact">
           <div><p className="eyebrow">ПРОДОЛЖИТЬ</p><h2 id="last-task-title">Последняя задача</h2></div>
         </div>
         <div className="resume-panel glass-panel">
-          <div className="resume-label"><span aria-hidden="true">▶</span> ПРОДОЛЖИТЬ</div>
+          <div className="resume-label"><span aria-hidden="true">▶</span> {latestTaskID ? "ПРОДОЛЖИТЬ" : "НАЧАТЬ"}</div>
           <div className="resume-body">
-            <span className="lesson-index">07</span>
-            <div><p>iOS · Подготовка к интервью</p><h2 id="resume-title">ARC и управление памятью</h2><span>12 минут · 3 вопроса · 1 задача с кодом</span></div>
+            <span className="lesson-index">{String(resumeTask.position).padStart(2, "0")}</span>
+            <div><p>{TRACKS[resumeTask.directionSlug].short} · {resumeTask.trackSlug === "interview" ? "Подготовка к интервью" : "Учебный план"}</p><h2 id="resume-title">{resumeTask.title}</h2><span>{resumeTask.sectionTitle} · {sectionTaskCount} {pluralTasks(sectionTaskCount)}</span></div>
           </div>
-          <button className="primary-button" type="button" onClick={() => onPractice("ios", "interview")}>Открыть урок <span aria-hidden="true">→</span></button>
+          <button className="primary-button" type="button" onClick={() => onPractice(resumeTask.directionSlug, resumeTask.trackSlug, resumeTask.sectionId)}>Открыть задачу <span aria-hidden="true">→</span></button>
         </div>
-      </section>
+      </section>}
     </div>
   );
 }
 
-function TrackView({ track, onBack, onPractice, onMockInterview }: {
+function TrackView({ track, catalog, progress, onBack, onOpenSection, onMockInterview }: {
   track: TrackId;
+  catalog: LearnCatalog | null;
+  progress: LearnProgress[];
   onBack: () => void;
-  onPractice: (path: PathId) => void;
+  onOpenSection: (path: PathId, sectionId: string) => void;
   onMockInterview: (mode: MockMode) => void;
 }) {
   const [selectedPath, setSelectedPath] = useState<PathId | null>(null);
   const details = TRACKS[track];
-  const paths = TRACK_PATHS[track];
+  const direction = catalog?.directions.find((item) => item.slug === track);
+  const paths = useMemo(() => direction?.tracks.slice().sort((left, right) => left.position - right.position).map((item, index) => ({
+    ...item,
+    id: item.slug,
+    index: String(index + 1).padStart(2, "0"),
+    kicker: item.slug === "interview" ? "ИНТЕРВЬЮ" : "УЧЕБНЫЙ ПЛАН",
+    total: item.sections.reduce((sum, section) => sum + section.itemCount, 0),
+    done: completedForTrack(catalog, progress, track, item.slug),
+  })) ?? [], [catalog, direction, progress, track]);
+
+  if (!direction || !paths.length) {
+    return <div className="page-wrap track-page"><button className="back-link" onClick={onBack}><span aria-hidden="true">←</span> Все направления</button><div className="content-state glass-panel"><span>⌁</span><h1>Загружаю материалы</h1><p>Каталог появится здесь, как только backend ответит.</p></div></div>;
+  }
 
   if (!selectedPath) {
     return (
@@ -597,7 +378,7 @@ function TrackView({ track, onBack, onPractice, onMockInterview }: {
 
         <section className="path-grid" aria-label={`Форматы обучения ${details.short}`}>
           {paths.map((item) => {
-            const percent = Math.round((item.done / item.total) * 100);
+            const percent = item.total ? Math.round((item.done / item.total) * 100) : 0;
             return (
               <button className={`path-card ${track}-path glass-panel`} type="button" onClick={() => setSelectedPath(item.id)} key={item.id}>
                 <span className="path-card-top">
@@ -608,7 +389,7 @@ function TrackView({ track, onBack, onPractice, onMockInterview }: {
                   <strong>{item.title}</strong>
                   <span>{item.description}</span>
                 </span>
-                <span className="progress-row"><span>Пройдено {item.done} из {item.total} тем</span><strong>{percent}%</strong></span>
+                <span className="progress-row"><span>Пройдено {item.done} из {item.total} материалов</span><strong>{percent}%</strong></span>
                 <span className="progress-bar" aria-label={`Прогресс: ${percent}%`}><span style={{ width: `${percent}%` }} /></span>
                 <span className="path-link">Открыть раздел <span aria-hidden="true">↗</span></span>
               </button>
@@ -620,7 +401,7 @@ function TrackView({ track, onBack, onPractice, onMockInterview }: {
   }
 
   const selected = paths.find((item) => item.id === selectedPath) ?? paths[0];
-  const modules = PATH_MODULES[track][selectedPath];
+  const modules = selected.sections;
 
   return (
     <div className="page-wrap track-page">
@@ -666,14 +447,15 @@ function TrackView({ track, onBack, onPractice, onMockInterview }: {
         </div>
         <div className="module-grid">
           {modules.map((module, index) => {
-            const pct = Math.round((module.done / module.topics) * 100);
+            const done = completedForSection(catalog, progress, module.id);
+            const pct = module.itemCount ? Math.round((done / module.itemCount) * 100) : 0;
             return (
-              <button className="module-card glass-panel" onClick={() => onPractice(selectedPath)} key={module.title} aria-label={`Открыть ${module.title}`}>
+              <button className="module-card glass-panel" onClick={() => onOpenSection(selectedPath, module.id)} key={module.id} aria-label={`Открыть ${module.title}`}>
                 <span className="module-icon" aria-hidden="true">{module.icon}</span>
                 <span className="module-order">{String(index + 1).padStart(2, "0")}</span>
                 <strong>{module.title}</strong>
                 <small>{module.description}</small>
-                <span className="module-progress"><i><b style={{ width: `${pct}%` }} /></i><em>{module.done}/{module.topics}</em></span>
+                <span className="module-progress"><i><b style={{ width: `${pct}%` }} /></i><em>{done}/{module.itemCount}</em></span>
               </button>
             );
           })}
@@ -683,57 +465,191 @@ function TrackView({ track, onBack, onPractice, onMockInterview }: {
   );
 }
 
+function SectionView({ track, path, sectionId, catalog, progress, onBack, onPractice, onComplete }: {
+  track: TrackId;
+  path: PathId;
+  sectionId: string;
+  catalog: LearnCatalog | null;
+  progress: LearnProgress[];
+  onBack: () => void;
+  onPractice: () => void;
+  onComplete: () => void;
+}) {
+  const direction = catalog?.directions.find((item) => item.slug === track);
+  const selectedTrack = direction?.tracks.find((item) => item.slug === path);
+  const section = selectedTrack?.sections.find((item) => item.id === sectionId);
+  const lessons = catalog?.lessons.filter((item) => item.sectionId === sectionId) ?? [];
+  const questions = catalog?.questions.filter((item) => item.sectionId === sectionId) ?? [];
+  const tasks = catalog?.codingTasks.filter((item) => item.sectionId === sectionId) ?? [];
+  const completed = completedContentIds(progress);
+  const [openedLesson, setOpenedLesson] = useState<string | null>(lessons[0]?.id ?? null);
+  const [openedQuestion, setOpenedQuestion] = useState<string | null>(null);
+  const [saving, setSaving] = useState<string | null>(null);
+  const [error, setError] = useState("");
+
+  const complete = async (contentType: "lesson" | "question", id: string) => {
+    setSaving(id);
+    setError("");
+    try {
+      await saveProgress(contentType, id, "completed");
+      onComplete();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Не удалось сохранить прогресс");
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  if (!catalog || !section || !direction || !selectedTrack) {
+    return <div className="page-wrap section-page"><button className="back-link" onClick={onBack}><span aria-hidden="true">←</span> К разделам</button><div className="content-state glass-panel"><span>⌁</span><h1>Раздел не найден</h1><p>Обновите каталог или вернитесь к списку материалов.</p></div></div>;
+  }
+
+  return (
+    <div className="page-wrap section-page">
+      <button className="back-link" onClick={onBack}><span aria-hidden="true">←</span> К разделам</button>
+      <header className="section-detail-head">
+        <div>
+          <p className="eyebrow">{direction.shortName} · {path === "learning" ? "УЧЕБНЫЙ ПЛАН" : "БАЗА ИНТЕРВЬЮ"}</p>
+          <h1>{section.title}</h1>
+          {section.description && <p>{section.description}</p>}
+        </div>
+        <span className="section-detail-count">{completedForSection(catalog, progress, sectionId)} <small>из {section.itemCount}</small></span>
+      </header>
+
+      {error && <p className="inline-error" role="alert">{error}</p>}
+      <div className="section-materials">
+        {lessons.map((lesson, index) => {
+          const isOpen = openedLesson === lesson.id;
+          const isDone = completed.has(`lesson:${lesson.id}`);
+          return <article className={`lesson-card glass-panel ${isOpen ? "open" : ""}`} key={lesson.id}>
+            <button className="lesson-card-head" type="button" onClick={() => setOpenedLesson(isOpen ? null : lesson.id)} aria-expanded={isOpen}>
+              <span>{String(index + 1).padStart(2, "0")}</span>
+              <div><small>МАТЕРИАЛ · {lesson.durationMinutes || "—"} МИН</small><strong>{lesson.title}</strong></div>
+              <em>{isDone ? "✓" : isOpen ? "−" : "+"}</em>
+            </button>
+            {isOpen && <div className="lesson-card-body">
+              <div className="lesson-markdown">{renderLesson(lesson.bodyMarkdown)}</div>
+              <button className="secondary-button" type="button" disabled={saving === lesson.id || isDone} onClick={() => void complete("lesson", lesson.id)}>{isDone ? "Материал пройден" : saving === lesson.id ? "Сохраняю…" : "Отметить пройденным"}</button>
+            </div>}
+          </article>;
+        })}
+
+        {questions.map((question, index) => {
+          const isOpen = openedQuestion === question.id;
+          const isDone = completed.has(`question:${question.id}`);
+          return <article className={`question-card glass-panel ${isOpen ? "open" : ""}`} key={question.id}>
+            <button className="question-card-head" type="button" onClick={() => setOpenedQuestion(isOpen ? null : question.id)} aria-expanded={isOpen}>
+              <span>Q{String(index + 1).padStart(2, "0")}</span>
+              <strong>{question.prompt}</strong>
+              <em>{isDone ? "✓" : isOpen ? "−" : "+"}</em>
+            </button>
+            {isOpen && <div className="question-card-body">
+              <p>{question.explanation || "Сформулируйте ответ вслух, как на настоящем собеседовании."}</p>
+              <button className="secondary-button" type="button" disabled={saving === question.id || isDone} onClick={() => void complete("question", question.id)}>{isDone ? "Ответ засчитан" : saving === question.id ? "Сохраняю…" : "Я ответил"}</button>
+            </div>}
+          </article>;
+        })}
+
+        {tasks.length > 0 && <button className="section-practice-card glass-panel" type="button" onClick={onPractice}>
+          <span aria-hidden="true">{`{ }`}</span>
+          <div><small>ПРАКТИКА</small><strong>{tasks.length === 1 ? tasks[0].title : `${tasks.length} задач с кодом`}</strong></div>
+          <em aria-hidden="true">→</em>
+        </button>}
+
+        {!lessons.length && !questions.length && !tasks.length && <div className="content-state glass-panel"><span>⌁</span><h1>Материалов пока нет</h1><p>Добавьте урок, вопрос или задачу через панель управления Learny.</p></div>}
+      </div>
+    </div>
+  );
+}
+
+function renderLesson(markdown: string) {
+  return markdown.split(/\n{2,}/).filter(Boolean).map((block, index) => {
+    const value = block.trim();
+    if (value.startsWith("### ")) return <h4 key={index}>{value.slice(4)}</h4>;
+    if (value.startsWith("## ")) return <h3 key={index}>{value.slice(3)}</h3>;
+    if (value.startsWith("# ")) return <h2 key={index}>{value.slice(2)}</h2>;
+    if (value.startsWith("```")) return <pre key={index}><code>{value.replace(/^```\w*\n?/, "").replace(/```$/, "")}</code></pre>;
+    return <p key={index}>{value}</p>;
+  });
+}
+
 function MockInterviewView({ track, mode, onBack, onStartLivecoding }: {
   track: TrackId;
   mode: MockMode;
   onBack: () => void;
-  onStartLivecoding: (count: number) => void;
+  onStartLivecoding: (session: InterviewSession) => void;
 }) {
   const maxCount = mode === "theory" ? 20 : 10;
   const [count, setCount] = useState(mode === "theory" ? 6 : 3);
-  const [started, setStarted] = useState(false);
-  const questions = useMemo(() => MOCK_QUESTIONS[track].slice(0, count), [count, track]);
+  const [session, setSession] = useState<InterviewSession | null>(null);
   const [current, setCurrent] = useState(0);
-  const [answers, setAnswers] = useState<string[]>([]);
   const [finished, setFinished] = useState(false);
-  const progress = Math.round(((current + 1) / questions.length) * 100);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const questions = session?.items ?? [];
+  const currentItem = questions[current];
+  const progress = questions.length ? Math.round(((current + 1) / questions.length) * 100) : 0;
 
   const setSafeCount = (value: number) => {
     const normalized = Number.isFinite(value) ? Math.floor(value) : 1;
     setCount(Math.min(maxCount, Math.max(1, normalized)));
   };
 
-  const start = (event: FormEvent) => {
+  const start = async (event: FormEvent) => {
     event.preventDefault();
-    if (mode === "livecoding") {
-      onStartLivecoding(count);
-      return;
+    setBusy(true);
+    setError("");
+    try {
+      const created = await createInterviewSession(track, mode, count);
+      if (mode === "livecoding") {
+        onStartLivecoding(created);
+        return;
+      }
+      setSession(created);
+      setCurrent(0);
+      setFinished(false);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Не удалось начать интервью");
+    } finally {
+      setBusy(false);
     }
-    setAnswers(questions.map(() => ""));
-    setCurrent(0);
-    setFinished(false);
-    setStarted(true);
   };
 
   const updateAnswer = (value: string) => {
-    setAnswers((items) => items.map((answer, index) => index === current ? value : answer));
+    setSession((valueSession) => valueSession ? {
+      ...valueSession,
+      items: valueSession.items.map((item, index) => index === current ? { ...item, answer: value } : item),
+    } : valueSession);
   };
 
-  const moveNext = () => {
-    if (current === questions.length - 1) {
-      setFinished(true);
-      return;
+  const moveNext = async () => {
+    if (!session || !currentItem || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      const saved = await saveInterviewItem(session.id, currentItem.id, currentItem.answer);
+      setSession(saved);
+      if (current === questions.length - 1) {
+        setSession(await finishInterviewSession(session.id));
+        setFinished(true);
+      } else {
+        setCurrent((index) => index + 1);
+      }
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Не удалось сохранить ответ");
+    } finally {
+      setBusy(false);
     }
-    setCurrent((index) => index + 1);
   };
 
   const restart = () => {
-    setAnswers(questions.map(() => ""));
+    setSession(null);
     setCurrent(0);
     setFinished(false);
+    setError("");
   };
 
-  if (!started) {
+  if (!session) {
     return (
       <div className="page-wrap mock-page">
         <button className="back-link" onClick={onBack}><span aria-hidden="true">←</span> К подготовке</button>
@@ -751,7 +667,8 @@ function MockInterviewView({ track, mode, onBack, onStartLivecoding }: {
             <button type="button" onClick={() => setSafeCount(count + 1)} disabled={count >= maxCount} aria-label="Увеличить количество">+</button>
           </div>
           <span className="count-limit">Минимум 1 · максимум {maxCount}</span>
-          <button className="primary-button mock-start-button" type="submit">Начать <span aria-hidden="true">→</span></button>
+          {error && <p className="inline-error" role="alert">{error}</p>}
+          <button className="primary-button mock-start-button" type="submit" disabled={busy}>{busy ? "Готовлю вопросы…" : "Начать"} <span aria-hidden="true">→</span></button>
         </form>
       </div>
     );
@@ -770,26 +687,27 @@ function MockInterviewView({ track, mode, onBack, onStartLivecoding }: {
             <div className="mock-session-progress" aria-label={`Прогресс интервью: ${progress}%`}><span style={{ width: `${progress}%` }} /></div>
             <div className="mock-question">
               <span className="mock-question-number">{String(current + 1).padStart(2, "0")}</span>
-              <h1 id="mock-session-title">{questions[current]}</h1>
+              <h1 id="mock-session-title">{currentItem?.snapshot.prompt}</h1>
               <p>Отвечайте так, как говорили бы интервьюеру: сначала короткий тезис, затем объяснение и пример.</p>
               <label htmlFor="mock-answer">Ваш ответ</label>
-              <textarea id="mock-answer" value={answers[current]} onChange={(event) => updateAnswer(event.target.value)} placeholder="Запишите свой ответ здесь…" />
+              <textarea id="mock-answer" value={currentItem?.answer ?? ""} onChange={(event) => updateAnswer(event.target.value)} placeholder="Запишите свой ответ здесь…" />
             </div>
+            {error && <p className="inline-error" role="alert">{error}</p>}
             <footer className="mock-session-actions">
-              <button className="secondary-button" type="button" onClick={moveNext}>Пропустить</button>
-              <button className="primary-button" type="button" onClick={moveNext}>{current === questions.length - 1 ? "Завершить интервью" : "Следующий вопрос"} <span aria-hidden="true">→</span></button>
+              <button className="secondary-button" type="button" onClick={() => void moveNext()} disabled={busy}>Пропустить</button>
+              <button className="primary-button" type="button" onClick={() => void moveNext()} disabled={busy}>{busy ? "Сохраняю…" : current === questions.length - 1 ? "Завершить интервью" : "Следующий вопрос"} <span aria-hidden="true">→</span></button>
             </footer>
           </>
         ) : (
           <div className="mock-finished">
             <p className="eyebrow">ИНТЕРВЬЮ ЗАВЕРШЕНО</p>
             <h1 id="mock-session-title">Ответы собраны</h1>
-            <p>Вы ответили на {answers.filter((answer) => answer.trim()).length} из {questions.length} вопросов. Просмотрите пробелы и повторите интервью ещё раз.</p>
+            <p>Вы ответили на {questions.filter((item) => item.answer.trim()).length} из {questions.length} вопросов. Ответы и прогресс сохранены.</p>
             <div className="mock-answer-list">
               {questions.map((question, index) => (
-                <article key={question}>
+                <article key={question.id}>
                   <span>{String(index + 1).padStart(2, "0")}</span>
-                  <div><strong>{question}</strong><p>{answers[index].trim() || "Ответ пропущен"}</p></div>
+                  <div><strong>{question.snapshot.prompt}</strong><p>{question.answer.trim() || "Ответ пропущен"}</p></div>
                 </article>
               ))}
             </div>
@@ -804,49 +722,55 @@ function MockInterviewView({ track, mode, onBack, onStartLivecoding }: {
   );
 }
 
-function PracticeView({ track, path, completed, sessionCount, onTrackChange, onBack, onComplete }: {
+function PracticeView({ track, path, sectionId, catalog, progress, interviewSession, sessionCount, onTrackChange, onBack, onComplete }: {
   track: TrackId;
   path: PathId;
-  completed: boolean;
+  sectionId: string | null;
+  catalog: LearnCatalog | null;
+  progress: LearnProgress[];
+  interviewSession: InterviewSession | null;
   sessionCount: number;
   onTrackChange: (track: TrackId) => void;
   onBack: () => void;
   onComplete: () => void;
 }) {
-  const sessionTasks = useMemo(() => {
-    const base = PRACTICE[track][path];
-    if (path !== "interview") return [base];
-    return LIVE_CODING_PROMPTS[track].slice(0, Math.min(10, Math.max(1, sessionCount))).map(([title, task, hint], index) => ({
-      ...base,
-      title,
-      task,
-      hint,
-      code: index === 0 ? base.code : track === "ios"
-        ? `import Foundation
-
-// Напишите решение здесь
-`
-        : `package main
-
-import "fmt"
-
-func main() {
-	fmt.Println("write your solution")
-}
-`,
-    }));
-  }, [path, sessionCount, track]);
+  const sessionTasks = useMemo<PracticeTask[]>(() => {
+    if (path === "interview" && interviewSession?.mode === "livecoding") {
+      return interviewSession.items.map((item) => ({
+        id: item.codingTaskId,
+        sessionItemId: item.id,
+        title: item.snapshot.title || "Задача",
+        category: item.snapshot.section || "Лайвкодинг",
+        language: item.snapshot.language || (track === "ios" ? "swift" : "go"),
+        compiler: item.snapshot.language === "go" ? "Go" : "Swift",
+        task: item.snapshot.statementMarkdown || "",
+        hint: item.snapshot.hint || "",
+        code: item.code || item.snapshot.starterCode || "",
+      }));
+    }
+    const tasks = catalog?.codingTasks.filter((item) => item.directionSlug === track && item.trackSlug === path
+      && (!sectionId || item.sectionId === sectionId)) ?? [];
+    return tasks.slice(0, path === "interview" ? Math.min(10, Math.max(1, sessionCount)) : 1).map(toSessionTask);
+  }, [catalog, interviewSession, path, sectionId, sessionCount, track]);
   const [currentTask, setCurrentTask] = useState(0);
-  const lesson = sessionTasks[currentTask];
-  const [code, setCode] = useState(lesson.code);
+  const lesson = sessionTasks[currentTask] ?? null;
+  const [code, setCode] = useState(sessionTasks[0]?.code ?? "");
   const [result, setResult] = useState<RunResult | null>(null);
   const [running, setRunning] = useState(false);
   const [hintOpen, setHintOpen] = useState(false);
   const hasNextTask = currentTask < sessionTasks.length - 1;
   const isLivecoding = path === "interview";
+  const completed = !!lesson?.id && progress.some((item) => item.contentType === "coding_task" && item.contentId === lesson.id && item.status === "completed");
 
-  const advanceTask = () => {
+  const advanceTask = async () => {
+    if (!lesson) return;
+    if (interviewSession && lesson.sessionItemId) {
+      try { await saveInterviewItem(interviewSession.id, lesson.sessionItemId, "", code); } catch { /* submission result remains saved */ }
+    }
     if (!hasNextTask) {
+      if (interviewSession) {
+        try { await finishInterviewSession(interviewSession.id); } catch { /* progress can be refreshed later */ }
+      }
       onBack();
       return;
     }
@@ -858,16 +782,18 @@ func main() {
   };
 
   const run = async () => {
+    if (!lesson) return;
     setRunning(true);
     setResult(null);
     try {
       const response = await fetch("/api/run", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ language: lesson.language, code }),
+        body: JSON.stringify({ codingTaskId: lesson.id, interviewItemId: lesson.sessionItemId, language: lesson.language, code }),
       });
-      const data = await response.json() as RunResult & { error?: string };
-      if (!response.ok) throw new Error(data.error || "Компилятор недоступен");
+      const data = await response.json() as RunResult & { error?: string | { message?: string } };
+      const errorMessage = typeof data.error === "string" ? data.error : data.error?.message;
+      if (!response.ok) throw new Error(errorMessage || "Компилятор недоступен");
       setResult(data);
       if (data.ok) onComplete();
     } catch (error) {
@@ -876,6 +802,10 @@ func main() {
       setRunning(false);
     }
   };
+
+  if (!lesson) {
+    return <div className="page-wrap"><button className="back-link" onClick={onBack}><span aria-hidden="true">←</span> К разделам</button><div className="content-state glass-panel"><span>{`{ }`}</span><h1>Задач пока нет</h1><p>Добавьте первую задачу в панели управления Learny.</p></div></div>;
+  }
 
   return (
     <div className={`practice-page ${isLivecoding ? "livecoding-page" : ""}`}>
@@ -948,7 +878,7 @@ func main() {
         <div className={`runner-bar ${isLivecoding ? "livecoding-runner" : "glass-panel"}`}>
           {!isLivecoding && <div><span className="live-dot" />Изолированный запуск · лимит 10 КБ</div>}
           <div className="runner-actions">
-            {result?.ok && isLivecoding && <button className="secondary-button" type="button" onClick={advanceTask}>{hasNextTask ? "Следующая задача" : "Завершить"} <span aria-hidden="true">→</span></button>}
+            {result?.ok && isLivecoding && <button className="secondary-button" type="button" onClick={() => void advanceTask()}>{hasNextTask ? "Следующая задача" : "Завершить"} <span aria-hidden="true">→</span></button>}
             <button className="run-button" onClick={run} disabled={running || !code.trim()}>{running ? <><i className="spinner" /> Компилирую…</> : <><span aria-hidden="true">▶</span> Запустить код</>}</button>
           </div>
         </div>
@@ -957,57 +887,59 @@ func main() {
   );
 }
 
-function ProgressView({ completed, onOpenTrack }: { completed: string[]; onOpenTrack: (id: TrackId) => void }) {
-  const week = [42, 58, 30, 76, 54, 84, 66];
+function ProgressView({ catalog, progress, onOpenTrack }: { catalog: LearnCatalog | null; progress: LearnProgress[]; onOpenTrack: (id: TrackId) => void }) {
+  const completed = progress.filter((item) => item.status === "completed");
+  const completedTasks = completed.filter((item) => item.contentType === "coding_task").length;
+  const week = useMemo(() => {
+    const formatter = new Intl.DateTimeFormat("ru-RU", { weekday: "short" });
+    const days = Array.from({ length: 7 }, (_, offset) => {
+      const date = new Date();
+      date.setHours(0, 0, 0, 0);
+      date.setDate(date.getDate() - (6 - offset));
+      const next = new Date(date); next.setDate(next.getDate() + 1);
+      const count = progress.filter((item) => {
+        const updated = new Date(item.updatedAt);
+        return updated >= date && updated < next;
+      }).length;
+      return { label: formatter.format(date).replace(".", ""), count };
+    });
+    const peak = Math.max(1, ...days.map((day) => day.count));
+    return days.map((day) => ({ ...day, height: day.count ? Math.max(18, Math.round(day.count / peak * 100)) : 4 }));
+  }, [progress]);
   return (
     <div className="page-wrap progress-page">
       <section className="progress-hero">
         <p className="eyebrow">ВАШ ПРОГРЕСС</p><h1>Движение видно в деталях</h1><p>Спокойный обзор тем, практики и ритма занятий.</p>
       </section>
       <div className="stats-grid">
-        <article className="stat-card glass-panel"><span>Пройдено тем</span><strong>{25 + completed.length}</strong><small>из 146 в двух направлениях</small></article>
-        <article className="stat-card glass-panel"><span>Задачи с кодом</span><strong>{6 + completed.length}</strong><small>{completed.length ? "+1 за сегодня" : "следующая уже готова"}</small></article>
-        <article className="stat-card glass-panel"><span>Серия</span><strong>4 <em>дня</em></strong><small>лучший результат: 9 дней</small></article>
+        <article className="stat-card glass-panel"><span>Пройдено материалов</span><strong>{completed.length}</strong><small>прогресс хранится в Learny</small></article>
+        <article className="stat-card glass-panel"><span>Задачи с кодом</span><strong>{completedTasks}</strong><small>{completedTasks ? "решения сохранены" : "первая задача уже готова"}</small></article>
+        <article className="stat-card glass-panel"><span>Активные дни</span><strong>{week.filter((day) => day.count > 0).length} <em>из 7</em></strong><small>за последнюю неделю</small></article>
       </div>
       <section className="activity-card glass-panel">
         <div><p className="eyebrow">АКТИВНОСТЬ</p><h2>Последние 7 дней</h2></div>
         <div className="activity-chart" aria-label="График активности за неделю">
-          {week.map((value, index) => <div key={index}><span style={{ height: `${value}%` }} /><small>{["Пн","Вт","Ср","Чт","Пт","Сб","Вс"][index]}</small></div>)}
+          {week.map((day) => <div key={day.label}><span style={{ height: `${day.height}%` }} /><small>{day.label}</small></div>)}
         </div>
       </section>
       <section className="progress-tracks">
         {(Object.keys(TRACKS) as TrackId[]).map((id) => {
-          const item = TRACKS[id]; const done = item.baseDone + (completed.includes(`${id}-practice`) ? 1 : 0); const percent = Math.round(done/item.total*100);
-          return <button className={`progress-track glass-panel ${id}`} key={id} onClick={() => onOpenTrack(id)}><span className={`track-logo ${id}-logo`}>{item.short}</span><div><strong>{item.name}</strong><small>{done} из {item.total} тем</small><i><b style={{ width: `${percent}%` }} /></i></div><em>{percent}%</em></button>;
+          const item = TRACKS[id];
+          const direction = catalog?.directions.find((entry) => entry.slug === id);
+          const total = direction?.tracks.flatMap((entry) => entry.sections).reduce((sum, section) => sum + section.itemCount, 0) ?? 0;
+          const done = completedForDirection(catalog, progress, id);
+          const percent = total ? Math.round(done / total * 100) : 0;
+          return <button className={`progress-track glass-panel ${id}`} key={id} onClick={() => onOpenTrack(id)}><span className={`track-logo ${id}-logo`}>{item.short}</span><div><strong>{direction?.name ?? item.name}</strong><small>{done} из {total} материалов</small><i><b style={{ width: `${percent}%` }} /></i></div><em>{percent}%</em></button>;
         })}
       </section>
     </div>
   );
 }
-
-function AddSectionModal({ defaultTrack, onClose, onSubmit }: { defaultTrack: TrackId; onClose: () => void; onSubmit: (title: string, description: string, track: TrackId) => void }) {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [track, setTrack] = useState<TrackId>(defaultTrack);
-  const submit = (event: FormEvent) => { event.preventDefault(); if (title.trim()) onSubmit(title.trim(), description.trim(), track); };
-  return (
-    <div className="modal-layer" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <form className="modal-card glass-panel" onSubmit={submit} role="dialog" aria-modal="true" aria-labelledby="section-modal-title">
-        <div className="modal-head"><div><p className="eyebrow">НОВЫЙ РАЗДЕЛ</p><h2 id="section-modal-title">Добавить направление обучения</h2></div><button type="button" onClick={onClose} aria-label="Закрыть">×</button></div>
-        <fieldset><legend>К какому треку</legend><div className="segmented"><button type="button" className={track === "ios" ? "active" : ""} onClick={() => setTrack("ios")}>iOS</button><button type="button" className={track === "go" ? "active" : ""} onClick={() => setTrack("go")}>Go</button></div></fieldset>
-        <label><span>Название</span><input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Например, System Design" maxLength={60} /></label>
-        <label><span>Короткое описание</span><textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Что вы хотите изучить в этом разделе?" maxLength={180} /></label>
-        <div className="modal-actions"><button type="button" className="secondary-button" onClick={onClose}>Отмена</button><button className="primary-button" disabled={!title.trim()}>Добавить раздел <span>→</span></button></div>
-      </form>
-    </div>
-  );
-}
-
-function SearchModal({ query, inputRef, onQuery, onClose, onSelect }: { query: string; inputRef: React.RefObject<HTMLInputElement | null>; onQuery: (value: string) => void; onClose: () => void; onSelect: (track: TrackId) => void }) {
+function SearchModal({ query, inputRef, items, onQuery, onClose, onSelect }: { query: string; inputRef: React.RefObject<HTMLInputElement | null>; items: { title: string; description: string; track: TrackId }[]; onQuery: (value: string) => void; onClose: () => void; onSelect: (track: TrackId) => void }) {
   const results = useMemo(() => {
     const normalized = query.toLowerCase().trim();
-    return normalized ? SEARCH_ITEMS.filter((item) => `${item.title} ${item.description}`.toLowerCase().includes(normalized)) : SEARCH_ITEMS.slice(0, 5);
-  }, [query]);
+    return normalized ? items.filter((item) => `${item.title} ${item.description}`.toLowerCase().includes(normalized)) : items.slice(0, 5);
+  }, [items, query]);
   return (
     <div className="modal-layer search-layer" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <div className="search-modal glass-panel" role="dialog" aria-modal="true" aria-label="Поиск по темам">
@@ -1020,4 +952,67 @@ function SearchModal({ query, inputRef, onQuery, onClose, onSelect }: { query: s
       </div>
     </div>
   );
+}
+
+function toSessionTask(task: LearnCodingTask): PracticeTask {
+  return {
+    id: task.id,
+    title: task.title,
+    category: task.sectionTitle,
+    language: task.language,
+    compiler: task.language === "go" ? "Go" : "Swift",
+    task: task.statementMarkdown,
+    hint: task.hint,
+    code: task.starterCode,
+  };
+}
+
+function completedContentIds(progress: LearnProgress[]) {
+  return new Set(progress
+    .filter((item) => item.status === "completed")
+    .map((item) => `${item.contentType}:${item.contentId}`));
+}
+
+function completedForDirection(catalog: LearnCatalog | null, progress: LearnProgress[], direction: TrackId) {
+  if (!catalog) return 0;
+  const completed = completedContentIds(progress);
+  const questions = catalog.questions.filter((item) => item.directionSlug === direction
+    && completed.has(`question:${item.id}`)).length;
+  const lessons = catalog.lessons.filter((item) => item.directionSlug === direction
+    && completed.has(`lesson:${item.id}`)).length;
+  const tasks = catalog.codingTasks.filter((item) => item.directionSlug === direction
+    && completed.has(`coding_task:${item.id}`)).length;
+  return lessons + questions + tasks;
+}
+
+function completedForTrack(catalog: LearnCatalog | null, progress: LearnProgress[], direction: TrackId, track: PathId) {
+  if (!catalog) return 0;
+  const completed = completedContentIds(progress);
+  const questions = catalog.questions.filter((item) => item.directionSlug === direction && item.trackSlug === track
+    && completed.has(`question:${item.id}`)).length;
+  const lessons = catalog.lessons.filter((item) => item.directionSlug === direction && item.trackSlug === track
+    && completed.has(`lesson:${item.id}`)).length;
+  const tasks = catalog.codingTasks.filter((item) => item.directionSlug === direction && item.trackSlug === track
+    && completed.has(`coding_task:${item.id}`)).length;
+  return lessons + questions + tasks;
+}
+
+function completedForSection(catalog: LearnCatalog | null, progress: LearnProgress[], sectionId: string) {
+  if (!catalog) return 0;
+  const completed = completedContentIds(progress);
+  const questions = catalog.questions.filter((item) => item.sectionId === sectionId
+    && completed.has(`question:${item.id}`)).length;
+  const lessons = catalog.lessons.filter((item) => item.sectionId === sectionId
+    && completed.has(`lesson:${item.id}`)).length;
+  const tasks = catalog.codingTasks.filter((item) => item.sectionId === sectionId
+    && completed.has(`coding_task:${item.id}`)).length;
+  return lessons + questions + tasks;
+}
+
+function pluralTasks(value: number) {
+  const lastTwo = value % 100;
+  const last = value % 10;
+  if (last === 1 && lastTwo !== 11) return "задача";
+  if (last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14)) return "задачи";
+  return "задач";
 }
