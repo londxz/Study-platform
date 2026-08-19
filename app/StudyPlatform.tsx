@@ -67,7 +67,6 @@ const TRACK_PATHS = {
       kicker: "ИНТЕРВЬЮ",
       title: "Подготовка к собеседованиям iOS",
       description: "Теоретические вопросы и практические задачи с технических интервью.",
-      features: "Теория · вопросы · код",
       total: 64,
       done: 19,
     },
@@ -77,7 +76,6 @@ const TRACK_PATHS = {
       kicker: "УЧЕБНЫЙ ПЛАН",
       title: "Изучение iOS",
       description: "Материал, темы, практические задачи и проекты для системного изучения iOS.",
-      features: "Темы · задачи · практика",
       total: 48,
       done: 0,
     },
@@ -89,7 +87,6 @@ const TRACK_PATHS = {
       kicker: "ИНТЕРВЬЮ",
       title: "Подготовка к собеседованиям Go",
       description: "Теория, вопросы по runtime и практические backend-задачи с интервью.",
-      features: "Теория · вопросы · код",
       total: 36,
       done: 0,
     },
@@ -99,7 +96,6 @@ const TRACK_PATHS = {
       kicker: "УЧЕБНЫЙ ПЛАН",
       title: "Изучение Go",
       description: "Последовательный путь от синтаксиса до конкурентного backend и баз данных.",
-      features: "Темы · задачи · практика",
       total: 58,
       done: 7,
     },
@@ -612,7 +608,6 @@ function TrackView({ track, onBack, onPractice, onMockInterview }: {
                   <strong>{item.title}</strong>
                   <span>{item.description}</span>
                 </span>
-                <span className="path-features">{item.features}</span>
                 <span className="progress-row"><span>Пройдено {item.done} из {item.total} тем</span><strong>{percent}%</strong></span>
                 <span className="progress-bar" aria-label={`Прогресс: ${percent}%`}><span style={{ width: `${percent}%` }} /></span>
                 <span className="path-link">Открыть раздел <span aria-hidden="true">↗</span></span>

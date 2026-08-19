@@ -191,7 +191,6 @@ a:focus-visible, button:focus-visible { outline: 3px solid #11161a; outline-offs
 .path-card-copy { display: flex; flex-direction: column; gap: 12px; margin-top: 42px; }
 .path-card-copy strong { max-width: 420px; font-size: 25px; line-height: 1.15; letter-spacing: -.035em; }
 .path-card-copy > span { max-width: 440px; color: var(--muted); font-size: 13px; line-height: 1.55; }
-.path-features { width: max-content; margin-top: 17px; padding: 7px 10px; border-radius: 9px; background: rgba(20,25,29,.06); color: #606b74; font-size: 10px; font-weight: 750; }
 .path-card .progress-row { margin-top: auto; }
 .path-link { display: flex; align-items: center; justify-content: space-between; margin-top: 22px; padding-top: 18px; border-top: 1px solid rgba(89,104,116,.14); font-size: 13px; font-weight: 750; }
 .path-link span { font-size: 18px; transition: transform .2s ease; }
