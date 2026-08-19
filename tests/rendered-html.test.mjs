@@ -44,5 +44,7 @@ test("ships code runner limits and project metadata", async () => {
     access(new URL("../public/og.png", import.meta.url)),
     access(new URL("../public/favicon.png", import.meta.url)),
     access(new URL("../public/streak-anime-avatar.png", import.meta.url)),
+    access(new URL("../public/swift-logo.svg", import.meta.url)),
+    access(new URL("../public/go-logo.svg", import.meta.url)),
   ]);
 });

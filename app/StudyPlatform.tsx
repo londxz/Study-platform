@@ -305,10 +305,6 @@ export function StudyPlatform() {
       )}
       {screen === "progress" && <ProgressView completed={completed} onOpenTrack={(id) => navigate("track", id)} />}
 
-      <footer className="site-footer">
-        <span className="creator-signature" aria-label="Londxz">londxz</span>
-      </footer>
-
       {sectionModal && <AddSectionModal defaultTrack={track} onClose={() => setSectionModal(false)} onSubmit={addSection} />}
       {searchOpen && (
         <SearchModal
@@ -358,7 +354,7 @@ function Dashboard({ completed, onOpenTrack, onPractice }: {
               <button className={`track-card ${id}-card glass-panel`} type="button" onClick={() => onOpenTrack(id)} key={id} aria-label={`Открыть направление ${item.name}`}>
                 <span className="track-card-top">
                   <span className={`track-logo ${id}-logo`} aria-hidden="true">{item.short}</span>
-                  <span className="language-wordmark" aria-label={id === "ios" ? "Swift" : "Go"}>{id === "ios" ? "Swift" : "Go"}</span>
+                  <span className={`language-logo ${id === "ios" ? "swift" : "go"}`} aria-hidden="true" />
                 </span>
                 <span className="track-copy">
                   <span className="track-title">{item.name}</span>
