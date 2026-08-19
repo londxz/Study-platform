@@ -15,7 +15,7 @@ const CodeEditor = (
 
 type TrackId = "ios" | "go";
 type PathId = "learning" | "interview";
-type Screen = "home" | "track" | "practice" | "progress";
+type Screen = "home" | "track" | "practice" | "mock" | "progress";
 
 type CustomSection = {
   id: string;
@@ -253,6 +253,25 @@ func main() {
   },
 };
 
+const MOCK_QUESTIONS = {
+  ios: [
+    "В чём практическая разница между value type и reference type в Swift?",
+    "Как ARC освобождает память и из-за чего возникает retain cycle?",
+    "Когда использовать weak, а когда unowned ссылку?",
+    "Чем Task, async let и TaskGroup отличаются друг от друга?",
+    "Опишите жизненный цикл UIViewController и типичные ошибки в нём.",
+    "Как бы вы спроектировали кэширование изображений для большой ленты?",
+  ],
+  go: [
+    "Как устроен interface в Go и почему interface с nil-указателем может быть не nil?",
+    "Как планировщик Go распределяет goroutine между системными потоками?",
+    "Кто должен закрывать channel и что произойдёт при записи в закрытый channel?",
+    "Как правильно распространять отмену операции через context?",
+    "Чем длина slice отличается от capacity и когда происходит перевыделение массива?",
+    "Как бы вы спроектировали graceful shutdown для HTTP-сервиса?",
+  ],
+} as const;
+
 const SEARCH_ITEMS = [
   ...PATH_MODULES.ios.learning.map((item) => ({ ...item, track: "ios" as TrackId })),
   ...PATH_MODULES.ios.interview.map((item) => ({ ...item, track: "ios" as TrackId })),
@@ -351,7 +370,7 @@ export function StudyPlatform() {
           <Brand />
         </button>
         <nav className={`main-nav ${mobileNav ? "mobile-open" : ""}`} aria-label="Основная навигация">
-          <button className={screen === "home" || screen === "track" ? "active" : ""} onClick={() => navigate("home")}>Обучение</button>
+          <button className={["home", "track", "practice", "mock"].includes(screen) ? "active" : ""} onClick={() => navigate("home")}>Обучение</button>
           <button className={screen === "progress" ? "active" : ""} onClick={() => navigate("progress")}>Прогресс</button>
         </nav>
         <div className="header-actions">
@@ -386,6 +405,10 @@ export function StudyPlatform() {
             setPath(selectedPath);
             navigate("practice", track);
           }}
+          onMockInterview={() => {
+            setPath("interview");
+            navigate("mock", track);
+          }}
         />
       )}
       {screen === "practice" && (
@@ -397,6 +420,13 @@ export function StudyPlatform() {
           onTrackChange={setTrack}
           onBack={() => navigate("track", track)}
           onComplete={() => setCompleted((items) => items.includes(`${track}-${path}-practice`) ? items : [...items, `${track}-${path}-practice`])}
+        />
+      )}
+      {screen === "mock" && (
+        <MockInterviewView
+          key={track}
+          track={track}
+          onBack={() => navigate("track", track)}
         />
       )}
       {screen === "progress" && <ProgressView completed={completed} onOpenTrack={(id) => navigate("track", id)} />}
@@ -481,10 +511,11 @@ function Dashboard({ completed, onOpenTrack, onPractice }: {
   );
 }
 
-function TrackView({ track, onBack, onPractice }: {
+function TrackView({ track, onBack, onPractice, onMockInterview }: {
   track: TrackId;
   onBack: () => void;
   onPractice: (path: PathId) => void;
+  onMockInterview: () => void;
 }) {
   const [selectedPath, setSelectedPath] = useState<PathId | null>(null);
   const details = TRACKS[track];
@@ -540,6 +571,29 @@ function TrackView({ track, onBack, onPractice }: {
         <span className={`track-logo large ${track}-logo`} aria-hidden="true">{details.short}</span>
       </header>
 
+      {selectedPath === "interview" && (
+        <section className="mock-section" aria-labelledby="mock-title">
+          <div className="section-heading compact">
+            <div>
+              <p className="eyebrow">МОК-ИНТЕРВЬЮ</p>
+              <h2 id="mock-title">Проверь себя в боевом формате</h2>
+            </div>
+          </div>
+          <div className="mock-grid">
+            <button className="mock-choice glass-panel" type="button" onClick={onMockInterview}>
+              <span className="mock-choice-icon" aria-hidden="true">?</span>
+              <span className="mock-choice-copy"><strong>Теоретическое интервью</strong><small>6 вопросов подряд · ответы сохраняются до завершения</small></span>
+              <span className="mock-choice-meta">20–30 мин <b aria-hidden="true">→</b></span>
+            </button>
+            <button className="mock-choice glass-panel" type="button" onClick={() => onPractice("interview")}>
+              <span className="mock-choice-icon code" aria-hidden="true">{`{ }`}</span>
+              <span className="mock-choice-copy"><strong>Только лайфкодинг</strong><small>Одна практическая задача в редакторе с компиляцией</small></span>
+              <span className="mock-choice-meta">30–40 мин <b aria-hidden="true">→</b></span>
+            </button>
+          </div>
+        </section>
+      )}
+
       <section className="modules-section path-modules" aria-labelledby="modules-title">
         <div className="section-heading compact">
           <div>
@@ -561,6 +615,78 @@ function TrackView({ track, onBack, onPractice }: {
             );
           })}
         </div>
+      </section>
+    </div>
+  );
+}
+
+function MockInterviewView({ track, onBack }: { track: TrackId; onBack: () => void }) {
+  const questions = MOCK_QUESTIONS[track];
+  const [current, setCurrent] = useState(0);
+  const [answers, setAnswers] = useState<string[]>(() => questions.map(() => ""));
+  const [finished, setFinished] = useState(false);
+  const progress = Math.round(((current + 1) / questions.length) * 100);
+
+  const updateAnswer = (value: string) => {
+    setAnswers((items) => items.map((answer, index) => index === current ? value : answer));
+  };
+
+  const moveNext = () => {
+    if (current === questions.length - 1) {
+      setFinished(true);
+      return;
+    }
+    setCurrent((index) => index + 1);
+  };
+
+  const restart = () => {
+    setAnswers(questions.map(() => ""));
+    setCurrent(0);
+    setFinished(false);
+  };
+
+  return (
+    <div className="page-wrap mock-page">
+      <button className="back-link" onClick={onBack}><span aria-hidden="true">←</span> К подготовке</button>
+      <section className="mock-session glass-panel" aria-labelledby="mock-session-title">
+        {!finished ? (
+          <>
+            <header className="mock-session-head">
+              <div><p className="eyebrow">МОК-ИНТЕРВЬЮ · {TRACKS[track].short}</p><span>Вопрос {current + 1} из {questions.length}</span></div>
+              <strong>{progress}%</strong>
+            </header>
+            <div className="mock-session-progress" aria-label={`Прогресс интервью: ${progress}%`}><span style={{ width: `${progress}%` }} /></div>
+            <div className="mock-question">
+              <span className="mock-question-number">{String(current + 1).padStart(2, "0")}</span>
+              <h1 id="mock-session-title">{questions[current]}</h1>
+              <p>Отвечайте так, как говорили бы интервьюеру: сначала короткий тезис, затем объяснение и пример.</p>
+              <label htmlFor="mock-answer">Ваш ответ</label>
+              <textarea id="mock-answer" value={answers[current]} onChange={(event) => updateAnswer(event.target.value)} placeholder="Запишите свой ответ здесь…" />
+            </div>
+            <footer className="mock-session-actions">
+              <button className="secondary-button" type="button" onClick={moveNext}>Пропустить</button>
+              <button className="primary-button" type="button" onClick={moveNext}>{current === questions.length - 1 ? "Завершить интервью" : "Следующий вопрос"} <span aria-hidden="true">→</span></button>
+            </footer>
+          </>
+        ) : (
+          <div className="mock-finished">
+            <p className="eyebrow">ИНТЕРВЬЮ ЗАВЕРШЕНО</p>
+            <h1 id="mock-session-title">Ответы собраны</h1>
+            <p>Вы ответили на {answers.filter((answer) => answer.trim()).length} из {questions.length} вопросов. Просмотрите пробелы и повторите интервью ещё раз.</p>
+            <div className="mock-answer-list">
+              {questions.map((question, index) => (
+                <article key={question}>
+                  <span>{String(index + 1).padStart(2, "0")}</span>
+                  <div><strong>{question}</strong><p>{answers[index].trim() || "Ответ пропущен"}</p></div>
+                </article>
+              ))}
+            </div>
+            <div className="mock-session-actions finished-actions">
+              <button className="secondary-button" type="button" onClick={onBack}>Вернуться к базе</button>
+              <button className="primary-button" type="button" onClick={restart}>Пройти ещё раз <span aria-hidden="true">↻</span></button>
+            </div>
+          </div>
+        )}
       </section>
     </div>
   );

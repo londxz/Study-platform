@@ -40,6 +40,10 @@ test("ships learning paths, code runner limits and project metadata", async () =
   assert.match(platform, /Подготовка к собеседованиям iOS/);
   assert.match(platform, /Изучение Go/);
   assert.match(platform, /Подготовка к собеседованиям Go/);
+  assert.match(platform, /МОК-ИНТЕРВЬЮ/);
+  assert.match(platform, /Теоретическое интервью/);
+  assert.match(platform, /Только лайфкодинг/);
+  assert.match(platform, /MockInterviewView/);
   assert.match(platform, /PATH_MODULES\[track\]\[selectedPath\]/);
   assert.match(runner, /id: 83/);
   assert.match(runner, /id: 107/);
