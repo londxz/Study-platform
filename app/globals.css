@@ -327,7 +327,7 @@ a:focus-visible, button:focus-visible { outline: 3px solid #11161a; outline-offs
 .progress-track > em { font-style: normal; font-size: 15px; font-weight: 800; }
 
 .site-footer { width: min(1100px,calc(100% - 40px)); min-height: 130px; display: flex; align-items: center; justify-content: center; margin: 14px auto 0; border-top: 1px solid rgba(79,94,106,.14); }
-.creator-signature { display: inline-block; color: #131619; font-family: var(--font-geist-sans),sans-serif; font-size: clamp(23px,2.2vw,29px); font-style: normal; font-weight: 850; line-height: 1; letter-spacing: -.075em; text-shadow: 0 1px 0 rgba(255,255,255,.96),0 7px 22px rgba(18,24,29,.08); }
+.creator-signature { display: inline-block; padding-left: .38em; color: #7c8798; font-family: var(--font-geist-sans),sans-serif; font-size: clamp(15px,1.25vw,18px); font-style: normal; font-weight: 420; line-height: 1; letter-spacing: .38em; }
 .screen-practice .site-footer { display: none; }
 
 .modal-layer { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 20px; background: rgba(12,13,14,.42); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); animation: fade-in .16s ease both; }
