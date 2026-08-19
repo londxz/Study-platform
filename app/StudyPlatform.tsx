@@ -1,10 +1,17 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import CodeEditor from "react-simple-code-editor";
+import CodeEditorImport from "react-simple-code-editor";
 import Prism from "prismjs";
 import "prismjs/components/prism-go";
 import "prismjs/components/prism-swift";
+
+// vinext keeps CommonJS default exports wrapped in the browser bundle.
+// Unwrap the editor component so React receives the actual forwardRef value.
+const CodeEditor = (
+  (CodeEditorImport as unknown as { default?: typeof CodeEditorImport }).default
+  ?? CodeEditorImport
+) as typeof CodeEditorImport;
 
 type TrackId = "ios" | "go";
 type Screen = "home" | "track" | "practice" | "progress";
