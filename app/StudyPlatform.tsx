@@ -1,6 +1,10 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import CodeEditor from "react-simple-code-editor";
+import Prism from "prismjs";
+import "prismjs/components/prism-go";
+import "prismjs/components/prism-swift";
 
 type TrackId = "ios" | "go";
 type Screen = "home" | "track" | "practice" | "progress";
@@ -18,6 +22,12 @@ type RunResult = {
   stderr: string;
   compiler: string;
 };
+
+function highlightCode(source: string, track: TrackId) {
+  const language = track === "ios" ? "swift" : "go";
+  const grammar = Prism.languages[language] || Prism.languages.clike;
+  return Prism.highlight(source, grammar, language);
+}
 
 const TRACKS = {
   ios: {
@@ -511,7 +521,19 @@ function PracticeView({ track, completed, onTrackChange, onBack, onComplete }: {
             <div className="panel-toolbar"><span className="file-name"><i className={track} />{track === "ios" ? "main.swift" : "main.go"}</span><button onClick={() => setCode(lesson.code)}>Сбросить</button></div>
             <div className="editor-wrap">
               <div className="line-numbers" aria-hidden="true">{code.split("\n").map((_, i) => <span key={i}>{i + 1}</span>)}</div>
-              <textarea aria-label={`Редактор кода ${lesson.compiler}`} spellCheck={false} value={code} onChange={(event) => setCode(event.target.value)} />
+              <CodeEditor
+                value={code}
+                onValueChange={setCode}
+                highlight={(source) => highlightCode(source, track)}
+                padding={{ top: 17, right: 19, bottom: 30, left: 19 }}
+                tabSize={4}
+                insertSpaces
+                className="xcode-editor"
+                preClassName="xcode-highlight"
+                textareaClassName="xcode-editor-input"
+                textareaId="practice-code-editor"
+                aria-label={`Редактор кода ${lesson.compiler}`}
+              />
             </div>
           </div>
           <div className="output-panel">

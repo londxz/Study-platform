@@ -270,7 +270,20 @@ a:focus-visible, button:focus-visible { outline: 3px solid #11161a; outline-offs
 .runtime-dot { padding: 4px 7px; border-radius: 99px; background: rgba(255,255,255,.06); }
 .editor-wrap { min-height: 400px; flex: 1; display: grid; grid-template-columns: 44px 1fr; }
 .line-numbers { display: flex; flex-direction: column; padding: 17px 12px 30px 0; border-right: 1px solid rgba(255,255,255,.04); color: #425365; font-family: var(--font-geist-mono), monospace; font-size: 12px; line-height: 1.72; text-align: right; user-select: none; }
-.editor-wrap textarea { width: 100%; min-height: 400px; resize: none; padding: 17px 19px 30px; border: 0; outline: 0; background: transparent; color: #dadddf; caret-color: #fff; font-family: var(--font-geist-mono), ui-monospace, monospace; font-size: 12px; line-height: 1.72; tab-size: 4; white-space: pre; overflow: auto; }
+.xcode-editor { min-width: 0; min-height: 400px; color: #d9d9d9; font-family: var(--font-geist-mono), ui-monospace, monospace; font-size: 12px; line-height: 1.72; tab-size: 4; }
+.xcode-editor .xcode-highlight, .xcode-editor .xcode-editor-input { outline: 0; white-space: pre !important; overflow-wrap: normal !important; word-break: normal !important; }
+.xcode-editor .xcode-editor-input { caret-color: #fff; }
+.xcode-editor .xcode-editor-input::selection { background: rgba(47,101,151,.72); }
+.xcode-editor .token.comment, .xcode-editor .token.prolog, .xcode-editor .token.doctype, .xcode-editor .token.cdata { color: #6c7986; }
+.xcode-editor .token.keyword, .xcode-editor .token.atrule { color: #fc5fa3; }
+.xcode-editor .token.string, .xcode-editor .token.char { color: #fc6a5d; }
+.xcode-editor .token.number { color: #d0a8ff; }
+.xcode-editor .token.boolean, .xcode-editor .token.constant, .xcode-editor .token.symbol { color: #a167e6; }
+.xcode-editor .token.class-name, .xcode-editor .token.builtin { color: #5dd8ff; }
+.xcode-editor .token.function { color: #67b7a4; }
+.xcode-editor .token.property, .xcode-editor .token.variable { color: #d9d9d9; }
+.xcode-editor .token.operator, .xcode-editor .token.punctuation { color: #e6e6e6; }
+.xcode-editor .token.annotation, .xcode-editor .token.attr-name { color: #bf8aff; }
 .console-output { flex: 1; padding: 20px; overflow: auto; color: #b8c5cf; font-family: var(--font-geist-mono), monospace; font-size: 11px; line-height: 1.6; }
 .console-empty { min-height: 270px; display: grid; place-content: center; justify-items: center; padding: 30px; color: #546677; text-align: center; }
 .console-empty span { font-size: 26px; }
@@ -405,7 +418,8 @@ a:focus-visible, button:focus-visible { outline: 3px solid #11161a; outline-offs
   .task-brief button { grid-column: 2; justify-self: start; }
   .editor-wrap { grid-template-columns: 34px 1fr; }
   .line-numbers { padding-right: 8px; }
-  .editor-wrap textarea { padding-inline: 12px; font-size: 11px; }
+  .xcode-editor { font-size: 11px; }
+  .xcode-editor .xcode-highlight, .xcode-editor .xcode-editor-input { padding-inline: 12px !important; }
   .runner-bar { align-items: stretch; flex-direction: column; }
   .run-button { width: 100%; }
   .stats-grid { grid-template-columns: 1fr; }
