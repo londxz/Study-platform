@@ -307,8 +307,7 @@ export function StudyPlatform() {
       {screen === "progress" && <ProgressView completed={completed} onOpenTrack={(id) => navigate("track", id)} />}
 
       <footer className="site-footer">
-        <Brand />
-        <span>Londxz</span>
+        <span className="creator-signature" aria-label="Londxz">londxz</span>
       </footer>
 
       {sectionModal && <AddSectionModal defaultTrack={track} onClose={() => setSectionModal(false)} onSubmit={addSection} />}

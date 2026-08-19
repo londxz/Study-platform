@@ -326,9 +326,9 @@ a:focus-visible, button:focus-visible { outline: 3px solid #11161a; outline-offs
 .progress-track.go b { background: var(--cyan); }
 .progress-track > em { font-style: normal; font-size: 15px; font-weight: 800; }
 
-.site-footer { width: min(1100px,calc(100% - 40px)); min-height: 100px; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 24px; margin: 14px auto 0; border-top: 1px solid rgba(79,94,106,.14); color: #77838d; font-size: 10px; }
-.site-footer .brand { color: var(--ink); transform: scale(.86); transform-origin: left center; }
-.site-footer > span { justify-self: end; }
+.site-footer { width: min(1100px,calc(100% - 40px)); min-height: 130px; display: flex; align-items: center; justify-content: center; margin: 14px auto 0; border-top: 1px solid rgba(79,94,106,.14); }
+.creator-signature { position: relative; display: inline-block; padding: 12px 34px 20px; color: #111417; font-family: Didot,"Bodoni 72","Bodoni MT","Iowan Old Style",Georgia,serif; font-size: clamp(32px,3.2vw,44px); font-style: italic; font-weight: 500; line-height: 1; letter-spacing: .035em; text-shadow: 0 1px 0 rgba(255,255,255,.95),0 8px 24px rgba(22,29,35,.08); transform: rotate(-1.5deg); }
+.creator-signature::after { content: ""; position: absolute; right: 10%; bottom: 9px; left: 14%; height: 1px; background: linear-gradient(90deg,transparent,rgba(17,20,23,.88) 16%,rgba(17,20,23,.48) 82%,transparent); box-shadow: 0 1px 0 rgba(255,255,255,.9); transform: rotate(-1deg); }
 .screen-practice .site-footer { display: none; }
 
 .modal-layer { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 20px; background: rgba(12,13,14,.42); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); animation: fade-in .16s ease both; }
@@ -395,7 +395,6 @@ a:focus-visible, button:focus-visible { outline: 3px solid #11161a; outline-offs
   .stats-grid .stat-card:last-child { grid-column: 1/-1; }
   .activity-card { grid-template-columns: 1fr; }
   .progress-tracks { grid-template-columns: 1fr; }
-  .site-footer { grid-template-columns: 1fr auto; }
 }
 @media (max-width: 600px) {
   .profile { display: none; }
@@ -424,8 +423,7 @@ a:focus-visible, button:focus-visible { outline: 3px solid #11161a; outline-offs
   .stats-grid .stat-card:last-child { grid-column: auto; }
   .activity-card { padding: 19px; }
   .activity-chart { gap: 6px; }
-  .site-footer { grid-template-columns: 1fr; padding: 25px 0; }
-  .site-footer > span { justify-self: start; }
+  .site-footer { min-height: 110px; }
   .modal-card { padding: 20px; }
   .modal-actions { display: grid; grid-template-columns: 1fr 1fr; }
 }
