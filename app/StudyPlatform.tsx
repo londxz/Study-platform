@@ -651,12 +651,12 @@ function TrackView({ track, onBack, onPractice, onMockInterview }: {
             <button className="mock-choice glass-panel" type="button" onClick={() => onMockInterview("theory")}>
               <span className="mock-choice-icon" aria-hidden="true">?</span>
               <span className="mock-choice-copy"><strong>Теория</strong></span>
-              <span className="mock-choice-meta">до 20 <b aria-hidden="true">→</b></span>
+              <span className="mock-choice-meta"><b aria-hidden="true">→</b></span>
             </button>
             <button className="mock-choice glass-panel" type="button" onClick={() => onMockInterview("livecoding")}>
               <span className="mock-choice-icon code" aria-hidden="true">{`{ }`}</span>
               <span className="mock-choice-copy"><strong>Лайфкодинг</strong></span>
-              <span className="mock-choice-meta">до 10 <b aria-hidden="true">→</b></span>
+              <span className="mock-choice-meta"><b aria-hidden="true">→</b></span>
             </button>
           </div>
         </section>
