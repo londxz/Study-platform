@@ -21,7 +21,8 @@ test("server-renders the Learny dashboard", async () => {
 
   const html = await response.text();
   assert.match(html, /<title>Learny — личная платформа обучения<\/title>/i);
-  assert.match(html, /С возвращением, Londxz/);
+  assert.match(html, /С возвращением, londxz/);
+  assert.match(html, /Последняя задача/);
   assert.match(html, /iOS Development/);
   assert.match(html, /Go Development/);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton/i);
@@ -42,5 +43,6 @@ test("ships code runner limits and project metadata", async () => {
   await Promise.all([
     access(new URL("../public/og.png", import.meta.url)),
     access(new URL("../public/favicon.png", import.meta.url)),
+    access(new URL("../public/streak-anime-avatar.png", import.meta.url)),
   ]);
 });

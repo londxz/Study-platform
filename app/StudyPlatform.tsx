@@ -282,7 +282,6 @@ export function StudyPlatform() {
           completed={completed}
           onOpenTrack={(id) => navigate("track", id)}
           onPractice={(id) => navigate("practice", id)}
-          onAddSection={() => setSectionModal(true)}
         />
       )}
       {screen === "track" && (
@@ -327,22 +326,21 @@ export function StudyPlatform() {
   );
 }
 
-function Dashboard({ completed, onOpenTrack, onPractice, onAddSection }: {
+function Dashboard({ completed, onOpenTrack, onPractice }: {
   completed: string[];
   onOpenTrack: (id: TrackId) => void;
   onPractice: (id: TrackId) => void;
-  onAddSection: () => void;
 }) {
   return (
     <div className="page-wrap" id="top">
       <section className="hero" aria-labelledby="hero-title">
         <div>
-          <p className="eyebrow">ЛИЧНОЕ ПРОСТРАНСТВО</p>
-          <h1 id="hero-title">С возвращением, Londxz</h1>
-          <p className="hero-copy">Продолжайте учиться в своём темпе. Прогресс, разделы и решения сохраняются автоматически.</p>
+          <p className="eyebrow">ЛИЧНАЯ БОТАЛКА</p>
+          <h1 id="hero-title">С возвращением, londxz</h1>
+          <p className="hero-copy">Продолжайте учиться в своём темпе. Помни, зачем ты всё начал.</p>
         </div>
         <div className="streak-card glass-panel" aria-label="Серия занятий: 4 дня">
-          <span className="streak-icon" aria-hidden="true">✦</span>
+          <span className="streak-avatar" aria-hidden="true" />
           <div><strong>4 дня</strong><span>серия занятий</span></div>
         </div>
       </section>
@@ -350,7 +348,6 @@ function Dashboard({ completed, onOpenTrack, onPractice, onAddSection }: {
       <section className="tracks-section" aria-labelledby="tracks-title">
         <div className="section-heading">
           <div><p className="eyebrow">НАПРАВЛЕНИЯ</p><h2 id="tracks-title">Что изучаем сегодня?</h2></div>
-          <button className="quiet-button glass-control" type="button" onClick={onAddSection}>+ Добавить раздел</button>
         </div>
         <div className="track-grid">
           {(Object.keys(TRACKS) as TrackId[]).map((id) => {
@@ -358,32 +355,35 @@ function Dashboard({ completed, onOpenTrack, onPractice, onAddSection }: {
             const done = item.baseDone + (completed.includes(`${id}-practice`) ? 1 : 0);
             const percent = Math.round((done / item.total) * 100);
             return (
-              <article className={`track-card ${id}-card glass-panel`} key={id}>
-                <div className="track-card-top">
+              <button className={`track-card ${id}-card glass-panel`} type="button" onClick={() => onOpenTrack(id)} key={id} aria-label={`Открыть направление ${item.name}`}>
+                <span className="track-card-top">
                   <span className={`track-logo ${id}-logo`} aria-hidden="true">{item.short}</span>
-                  <span className="status-pill"><i /> В процессе</span>
-                </div>
-                <div className="track-copy">
-                  <p className="track-kicker">{item.kicker}</p>
-                  <h3>{item.name}</h3>
-                  <p>{item.description}</p>
-                </div>
-                <div className="progress-row"><span>Пройдено {done} из {item.total} тем</span><strong>{percent}%</strong></div>
-                <div className="progress-bar" aria-label={`Прогресс ${item.short}: ${percent}%`}><span style={{ width: `${percent}%` }} /></div>
-                <button className="track-link" onClick={() => onOpenTrack(id)}>Открыть направление <span aria-hidden="true">↗</span></button>
-              </article>
+                  <span className="language-wordmark" aria-label={id === "ios" ? "Swift" : "Go"}>{id === "ios" ? "Swift" : "Go"}</span>
+                </span>
+                <span className="track-copy">
+                  <span className="track-title">{item.name}</span>
+                </span>
+                <span className="progress-row"><span>Пройдено {done} из {item.total} тем</span><strong>{percent}%</strong></span>
+                <span className="progress-bar" aria-label={`Прогресс ${item.short}: ${percent}%`}><span style={{ width: `${percent}%` }} /></span>
+                <span className="track-link">Открыть направление <span aria-hidden="true">↗</span></span>
+              </button>
             );
           })}
         </div>
       </section>
 
-      <section className="resume-panel glass-panel" aria-labelledby="resume-title">
-        <div className="resume-label"><span aria-hidden="true">▶</span> ПРОДОЛЖИТЬ</div>
-        <div className="resume-body">
-          <span className="lesson-index">07</span>
-          <div><p>iOS · Подготовка к интервью</p><h2 id="resume-title">ARC и управление памятью</h2><span>12 минут · 3 вопроса · 1 задача с кодом</span></div>
+      <section className="resume-section" aria-labelledby="last-task-title">
+        <div className="section-heading compact">
+          <div><p className="eyebrow">ПРОДОЛЖИТЬ</p><h2 id="last-task-title">Последняя задача</h2></div>
         </div>
-        <button className="primary-button" type="button" onClick={() => onPractice("ios")}>Открыть урок <span aria-hidden="true">→</span></button>
+        <div className="resume-panel glass-panel">
+          <div className="resume-label"><span aria-hidden="true">▶</span> ПРОДОЛЖИТЬ</div>
+          <div className="resume-body">
+            <span className="lesson-index">07</span>
+            <div><p>iOS · Подготовка к интервью</p><h2 id="resume-title">ARC и управление памятью</h2><span>12 минут · 3 вопроса · 1 задача с кодом</span></div>
+          </div>
+          <button className="primary-button" type="button" onClick={() => onPractice("ios")}>Открыть урок <span aria-hidden="true">→</span></button>
+        </div>
       </section>
     </div>
   );
