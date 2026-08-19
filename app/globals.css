@@ -207,7 +207,6 @@ a:focus-visible, button:focus-visible { outline: 3px solid #11161a; outline-offs
 .mock-choice-icon.code { font-size: 13px; }
 .mock-choice-copy { display: flex; min-width: 0; flex-direction: column; gap: 7px; }
 .mock-choice-copy strong { font-size: 16px; letter-spacing: -.02em; }
-.mock-choice-copy small { color: var(--muted); font-size: 11px; line-height: 1.5; }
 .mock-choice-meta { display: flex; align-items: center; gap: 14px; color: #77838d; font-size: 10px; white-space: nowrap; }
 .mock-choice-meta b { color: var(--ink); font-size: 18px; font-weight: 400; transition: transform .2s ease; }
 .mock-choice:hover .mock-choice-meta b { transform: translateX(3px); }
