@@ -371,6 +371,24 @@ a:focus-visible, button:focus-visible { outline: 3px solid #11161a; outline-offs
 .spinner { width: 12px; height: 12px; border: 2px solid rgba(255,255,255,.35); border-top-color: white; border-radius: 50%; animation: spin .7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+.livecoding-page { width: min(1580px,calc(100% - 40px)); grid-template-columns: minmax(0,1fr); gap: 0; margin-top: 18px; }
+.livecoding-page .workspace { padding: 0; }
+.livecoding-head { display: grid; grid-template-columns: 44px minmax(0,1fr) auto; align-items: center; gap: 14px; padding: 0 4px 16px; }
+.livecoding-head h1 { margin: 0; overflow: hidden; font-size: clamp(22px,2.5vw,32px); letter-spacing: -.04em; text-overflow: ellipsis; white-space: nowrap; }
+.livecoding-head > span { color: #7a8690; font-family: var(--font-geist-mono),monospace; font-size: 11px; }
+.livecoding-back { width: 40px; height: 40px; border: 1px solid rgba(88,103,115,.13); border-radius: 12px; background: rgba(255,255,255,.38); color: #3c454c; font-size: 19px; cursor: pointer; box-shadow: inset 0 1px 0 rgba(255,255,255,.85); }
+.livecoding-prompt { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; padding: 0 5px 14px; }
+.livecoding-prompt p { max-width: 1050px; margin: 0; color: #4f5d68; font-size: 13px; line-height: 1.55; }
+.livecoding-prompt button { flex: 0 0 auto; padding: 1px 0; border: 0; background: transparent; color: #4d5963; font-size: 11px; font-weight: 750; cursor: pointer; }
+.livecoding-page .hint-panel { margin: -3px 4px 12px; }
+.livecoding-page .code-lab { min-height: calc(100vh - 230px); grid-template-columns: minmax(0,1.7fr) minmax(300px,.55fr); margin-top: 0; border-radius: 22px; }
+.livecoding-page .editor-wrap, .livecoding-page .xcode-editor { min-height: calc(100vh - 280px); }
+.livecoding-page .xcode-editor { font-size: 13px; }
+.livecoding-page .panel-toolbar { height: 50px; }
+.livecoding-page .file-name { color: #97a5b1; }
+.livecoding-runner { justify-content: flex-end; padding: 2px 0 0; background: transparent; border: 0; box-shadow: none; }
+.livecoding-runner .run-button { min-width: 170px; }
+
 .progress-page { padding-top: 64px; }
 .progress-hero { margin-bottom: 34px; }
 .progress-hero h1 { margin: 0; font-size: clamp(34px,5vw,50px); letter-spacing: -.045em; }
@@ -441,6 +459,8 @@ a:focus-visible, button:focus-visible { outline: 3px solid #11161a; outline-offs
   .practice-page { grid-template-columns: 220px minmax(0,1fr); }
   .practice-sidebar { padding: 20px 15px; }
   .code-lab { grid-template-columns: 1fr; }
+  .livecoding-page { grid-template-columns: 1fr; }
+  .livecoding-page .code-lab { grid-template-columns: 1fr; }
   .output-panel { min-height: 260px; border-top: 1px solid rgba(255,255,255,.08); border-left: 0; }
 }
 @media (max-width: 820px) {
@@ -486,8 +506,14 @@ a:focus-visible, button:focus-visible { outline: 3px solid #11161a; outline-offs
   .section-card > button { grid-column: 2; width: 100%; height: 36px; margin-top: 2px; }
   .module-grid { grid-template-columns: 1fr; }
   .practice-page { width: calc(100% - 20px); margin-top: 12px; }
+  .livecoding-page { width: calc(100% - 20px); }
   .workspace { padding-inline: 0; }
   .workspace-head { align-items: flex-start; }
+  .livecoding-head { grid-template-columns: 40px minmax(0,1fr) auto; padding-inline: 0; }
+  .livecoding-head h1 { font-size: 20px; }
+  .livecoding-prompt { align-items: flex-start; flex-direction: column; gap: 9px; padding-inline: 2px; }
+  .livecoding-page .code-lab { min-height: 620px; }
+  .livecoding-page .editor-wrap, .livecoding-page .xcode-editor { min-height: 440px; }
   .task-list { grid-template-columns: 1fr 1fr; }
   .task-list li { min-height: 55px; }
   .task-brief { grid-template-columns: 38px 1fr; }

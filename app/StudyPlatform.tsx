@@ -843,6 +843,7 @@ func main() {
   const [running, setRunning] = useState(false);
   const [hintOpen, setHintOpen] = useState(false);
   const hasNextTask = currentTask < sessionTasks.length - 1;
+  const isLivecoding = path === "interview";
 
   const advanceTask = () => {
     if (!hasNextTask) {
@@ -877,10 +878,10 @@ func main() {
   };
 
   return (
-    <div className="practice-page">
-      <aside className="practice-sidebar glass-panel">
+    <div className={`practice-page ${isLivecoding ? "livecoding-page" : ""}`}>
+      {!isLivecoding && <aside className="practice-sidebar glass-panel">
         <button className="back-link light" onClick={onBack}><span aria-hidden="true">←</span> К разделам</button>
-        <p className="sidebar-eyebrow">{path === "interview" ? "ЛАЙВКОДИНГ" : "КОДОВАЯ ПРАКТИКА"}</p>
+        <p className="sidebar-eyebrow">КОДОВАЯ ПРАКТИКА</p>
         <h2>{TRACKS[track].name}</h2>
         <div className="language-switch" role="group" aria-label="Язык практики">
           <button className={track === "ios" ? "active" : ""} onClick={() => onTrackChange("ios")}>Swift</button>
@@ -895,23 +896,30 @@ func main() {
           ))}
         </ol>
         <div className="sidebar-note"><span aria-hidden="true">⌁</span><p>Код отправляется в изолированный внешний компилятор. Не вставляйте секреты и токены.</p></div>
-      </aside>
+      </aside>}
 
       <section className="workspace">
-        <header className="workspace-head">
+        {isLivecoding ? <header className="livecoding-head">
+          <button className="livecoding-back" type="button" onClick={onBack} aria-label="Вернуться к подготовке">←</button>
+          <h1>{lesson.title}</h1>
+          <span>{currentTask + 1} / {sessionTasks.length}</span>
+        </header> : <header className="workspace-head">
           <div><p>{lesson.category}</p><h1>{lesson.title}</h1></div>
-          <span className={`completion-badge ${completed ? "done" : ""}`}>{path === "interview" ? `${currentTask + 1} из ${sessionTasks.length}` : completed ? "✓ Выполнено" : "Практика"}</span>
-        </header>
-        <div className="task-brief glass-panel">
-          <div className="task-brief-number">{String(currentTask + 1).padStart(2, "0")}</div>
+          <span className={`completion-badge ${completed ? "done" : ""}`}>{completed ? "✓ Выполнено" : "Практика"}</span>
+        </header>}
+        {isLivecoding ? <div className="livecoding-prompt">
+          <p>{lesson.task}</p>
+          <button type="button" onClick={() => setHintOpen((open) => !open)}>{hintOpen ? "Скрыть подсказку" : "Подсказка"}</button>
+        </div> : <div className="task-brief glass-panel">
+          <div className="task-brief-number">01</div>
           <div><p className="eyebrow">ЗАДАЧА</p><p>{lesson.task}</p></div>
           <button onClick={() => setHintOpen((open) => !open)}>{hintOpen ? "Скрыть" : "Подсказка"}</button>
-        </div>
+        </div>}
         {hintOpen && <div className="hint-panel glass-panel"><span aria-hidden="true">✦</span><p>{lesson.hint}</p></div>}
 
         <div className="code-lab">
           <div className="editor-panel">
-            <div className="panel-toolbar"><span className="file-name"><i className={track} />{track === "ios" ? "main.swift" : "main.go"}</span><button onClick={() => setCode(lesson.code)}>Сбросить</button></div>
+            <div className="panel-toolbar"><span className="file-name">{isLivecoding ? "main" : <><i className={track} />{track === "ios" ? "main.swift" : "main.go"}</>}</span><button onClick={() => setCode(lesson.code)}>Сбросить</button></div>
             <div className="editor-wrap">
               <div className="line-numbers" aria-hidden="true">{code.split("\n").map((_, i) => <span key={i}>{i + 1}</span>)}</div>
               <CodeEditor
@@ -930,17 +938,17 @@ func main() {
             </div>
           </div>
           <div className="output-panel">
-            <div className="panel-toolbar"><span>Консоль</span><span className="runtime-dot">{lesson.compiler}</span></div>
+            <div className="panel-toolbar"><span>Консоль</span>{!isLivecoding && <span className="runtime-dot">{lesson.compiler}</span>}</div>
             <div className={`console-output ${result ? (result.ok ? "success" : "error") : ""}`} aria-live="polite">
-              {!result && <div className="console-empty"><span>›_</span><p>Запустите код, чтобы увидеть результат компиляции и вывод программы.</p></div>}
-              {result && <><p className="console-status">{result.ok ? "✓ Выполнено успешно" : "× Ошибка выполнения"}</p>{result.stdout && <pre>{result.stdout}</pre>}{result.stderr && <pre className="stderr">{result.stderr}</pre>}<small>{result.compiler}</small></>}
+              {!result && <div className="console-empty"><span>›_</span><p>Результат запуска появится здесь.</p></div>}
+              {result && <><p className="console-status">{result.ok ? "✓ Выполнено успешно" : "× Ошибка выполнения"}</p>{result.stdout && <pre>{result.stdout}</pre>}{result.stderr && <pre className="stderr">{result.stderr}</pre>}{!isLivecoding && <small>{result.compiler}</small>}</>}
             </div>
           </div>
         </div>
-        <div className="runner-bar glass-panel">
-          <div><span className="live-dot" />Изолированный запуск · лимит 10 КБ</div>
+        <div className={`runner-bar ${isLivecoding ? "livecoding-runner" : "glass-panel"}`}>
+          {!isLivecoding && <div><span className="live-dot" />Изолированный запуск · лимит 10 КБ</div>}
           <div className="runner-actions">
-            {result?.ok && path === "interview" && <button className="secondary-button" type="button" onClick={advanceTask}>{hasNextTask ? "Следующая задача" : "Завершить"} <span aria-hidden="true">→</span></button>}
+            {result?.ok && isLivecoding && <button className="secondary-button" type="button" onClick={advanceTask}>{hasNextTask ? "Следующая задача" : "Завершить"} <span aria-hidden="true">→</span></button>}
             <button className="run-button" onClick={run} disabled={running || !code.trim()}>{running ? <><i className="spinner" /> Компилирую…</> : <><span aria-hidden="true">▶</span> Запустить код</>}</button>
           </div>
         </div>

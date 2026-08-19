@@ -45,6 +45,9 @@ test("ships learning paths, code runner limits and project metadata", async () =
   assert.match(platform, /<strong>Лайвкодинг<\/strong>/);
   assert.match(platform, /maxCount = mode === "theory" \? 20 : 10/);
   assert.match(platform, /type="number" min="1" max=\{maxCount\}/);
+  assert.match(platform, /isLivecoding \? "livecoding-page"/);
+  assert.match(platform, /isLivecoding \? "livecoding-runner"/);
+  assert.match(platform, /!isLivecoding && <aside/);
   assert.ok(platform.indexOf("Подготовка к собеседованиям iOS") < platform.indexOf("Изучение iOS"));
   assert.ok(platform.indexOf("Подготовка к собеседованиям Go") < platform.indexOf("Изучение Go"));
   assert.match(platform, /MockInterviewView/);
