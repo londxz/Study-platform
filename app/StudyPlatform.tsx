@@ -655,7 +655,7 @@ function TrackView({ track, onBack, onPractice, onMockInterview }: {
             </button>
             <button className="mock-choice glass-panel" type="button" onClick={() => onMockInterview("livecoding")}>
               <span className="mock-choice-icon code" aria-hidden="true">{`{ }`}</span>
-              <span className="mock-choice-copy"><strong>Лайфкодинг</strong></span>
+              <span className="mock-choice-copy"><strong>Лайвкодинг</strong></span>
               <span className="mock-choice-meta"><b aria-hidden="true">→</b></span>
             </button>
           </div>
@@ -745,7 +745,7 @@ function MockInterviewView({ track, mode, onBack, onStartLivecoding }: {
         <form className="mock-setup glass-panel" onSubmit={start} aria-labelledby="mock-setup-title">
           <div className="mock-setup-icon" aria-hidden="true">{mode === "theory" ? "?" : "{ }"}</div>
           <p className="eyebrow">МОК-ИНТЕРВЬЮ · {TRACKS[track].short}</p>
-          <h1 id="mock-setup-title">{mode === "theory" ? "Теория" : "Лайфкодинг"}</h1>
+          <h1 id="mock-setup-title">{mode === "theory" ? "Теория" : "Лайвкодинг"}</h1>
           <p>{mode === "theory"
             ? "Выберите количество вопросов. Отвечайте последовательно, как на настоящем техническом интервью."
             : "Выберите количество задач. Каждая откроется в редакторе с компиляцией Swift или Go."}</p>
@@ -885,7 +885,7 @@ func main() {
     <div className="practice-page">
       <aside className="practice-sidebar glass-panel">
         <button className="back-link light" onClick={onBack}><span aria-hidden="true">←</span> К разделам</button>
-        <p className="sidebar-eyebrow">{path === "interview" ? "ЛАЙФКОДИНГ" : "КОДОВАЯ ПРАКТИКА"}</p>
+        <p className="sidebar-eyebrow">{path === "interview" ? "ЛАЙВКОДИНГ" : "КОДОВАЯ ПРАКТИКА"}</p>
         <h2>{TRACKS[track].name}</h2>
         <div className="language-switch" role="group" aria-label="Язык практики">
           <button className={track === "ios" ? "active" : ""} onClick={() => onTrackChange("ios")}>Swift</button>
