@@ -262,7 +262,6 @@ export function StudyPlatform() {
         </button>
         <nav className={`main-nav ${mobileNav ? "mobile-open" : ""}`} aria-label="Основная навигация">
           <button className={screen === "home" || screen === "track" ? "active" : ""} onClick={() => navigate("home")}>Обучение</button>
-          <button className={screen === "practice" ? "active" : ""} onClick={() => navigate("practice")}>Практика</button>
           <button className={screen === "progress" ? "active" : ""} onClick={() => navigate("progress")}>Прогресс</button>
         </nav>
         <div className="header-actions">
@@ -309,8 +308,7 @@ export function StudyPlatform() {
 
       <footer className="site-footer">
         <Brand />
-        <p>Личная практика. Один маленький шаг каждый день.</p>
-        <span>Данные хранятся на этом устройстве</span>
+        <span>Londxz</span>
       </footer>
 
       {sectionModal && <AddSectionModal defaultTrack={track} onClose={() => setSectionModal(false)} onSubmit={addSection} />}
