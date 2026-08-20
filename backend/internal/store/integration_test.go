@@ -67,3 +67,46 @@ func TestCreateInterviewSessionIntegration(t *testing.T) {
 		}
 	}
 }
+
+func TestIOSInterviewBankIntegration(t *testing.T) {
+	dsn := os.Getenv("LEARNY_TEST_DATABASE_URL")
+	if dsn == "" {
+		t.Skip("LEARNY_TEST_DATABASE_URL is not set")
+	}
+	pool, err := pgxpool.New(context.Background(), dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Close()
+
+	var theoryCount, livecodingCount, hiddenTestCount, tasksWithoutTests int
+	err = pool.QueryRow(context.Background(), `
+		SELECT
+		 (SELECT count(*) FROM questions q
+		  JOIN topics tp ON tp.id=q.topic_id JOIN sections s ON s.id=tp.section_id
+		  JOIN tracks tr ON tr.id=s.track_id JOIN directions d ON d.id=tr.direction_id
+		  WHERE d.slug='ios' AND tr.slug='interview' AND q.position BETWEEN 10000 AND 12020),
+		 (SELECT count(*) FROM coding_tasks ct
+		  JOIN topics tp ON tp.id=ct.topic_id JOIN sections s ON s.id=tp.section_id
+		  JOIN tracks tr ON tr.id=s.track_id JOIN directions d ON d.id=tr.direction_id
+		  WHERE d.slug='ios' AND tr.slug='interview' AND ct.slug LIKE 'ios-drill-%'),
+		 (SELECT count(*) FROM coding_task_tests test
+		  JOIN coding_tasks ct ON ct.id=test.coding_task_id
+		  WHERE ct.slug LIKE 'ios-drill-%' AND test.hidden),
+		 (SELECT count(*) FROM (
+		  SELECT ct.id FROM coding_tasks ct
+		  LEFT JOIN coding_task_tests test ON test.coding_task_id=ct.id
+		  WHERE ct.slug LIKE 'ios-drill-%'
+		  GROUP BY ct.id HAVING count(test.id)=0 OR bool_or(ct.reference_solution='')
+		 ) invalid_tasks)
+	`).Scan(&theoryCount, &livecodingCount, &hiddenTestCount, &tasksWithoutTests)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if theoryCount != 1400 || livecodingCount != 600 {
+		t.Fatalf("unexpected iOS interview bank: theory=%d livecoding=%d", theoryCount, livecodingCount)
+	}
+	if hiddenTestCount != 1100 || tasksWithoutTests != 0 {
+		t.Fatalf("invalid iOS livecoding verification: hiddenTests=%d tasksWithoutTests=%d", hiddenTestCount, tasksWithoutTests)
+	}
+}
