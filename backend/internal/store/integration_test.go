@@ -110,3 +110,50 @@ func TestIOSInterviewBankIntegration(t *testing.T) {
 		t.Fatalf("invalid iOS livecoding verification: hiddenTests=%d tasksWithoutTests=%d", hiddenTestCount, tasksWithoutTests)
 	}
 }
+
+func TestIOSAdvancedLivecodingBankIntegration(t *testing.T) {
+	dsn := os.Getenv("LEARNY_TEST_DATABASE_URL")
+	if dsn == "" {
+		t.Skip("LEARNY_TEST_DATABASE_URL is not set")
+	}
+	pool, err := pgxpool.New(context.Background(), dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Close()
+
+	var archetypeCount, drillCount, archetypeTestCount, drillTestCount, invalidTaskCount int
+	err = pool.QueryRow(context.Background(), `
+		SELECT
+		 (SELECT count(*) FROM coding_tasks ct
+		  JOIN topics tp ON tp.id=ct.topic_id JOIN sections s ON s.id=tp.section_id
+		  JOIN tracks tr ON tr.id=s.track_id JOIN directions d ON d.id=tr.direction_id
+		  WHERE d.slug='ios' AND tr.slug='interview'
+		    AND ct.slug LIKE 'ios-advanced-%' AND ct.slug NOT LIKE 'ios-advanced-drill-%'),
+		 (SELECT count(*) FROM coding_tasks ct
+		  JOIN topics tp ON tp.id=ct.topic_id JOIN sections s ON s.id=tp.section_id
+		  JOIN tracks tr ON tr.id=s.track_id JOIN directions d ON d.id=tr.direction_id
+		  WHERE d.slug='ios' AND tr.slug='interview' AND ct.slug LIKE 'ios-advanced-drill-%'),
+		 (SELECT count(*) FROM coding_task_tests test
+		  JOIN coding_tasks ct ON ct.id=test.coding_task_id
+		  WHERE ct.slug LIKE 'ios-advanced-%' AND ct.slug NOT LIKE 'ios-advanced-drill-%' AND test.hidden),
+		 (SELECT count(*) FROM coding_task_tests test
+		  JOIN coding_tasks ct ON ct.id=test.coding_task_id
+		  WHERE ct.slug LIKE 'ios-advanced-drill-%' AND test.hidden),
+		 (SELECT count(*) FROM (
+		  SELECT ct.id FROM coding_tasks ct
+		  LEFT JOIN coding_task_tests test ON test.coding_task_id=ct.id
+		  WHERE ct.slug LIKE 'ios-advanced-%'
+		  GROUP BY ct.id HAVING count(test.id)=0 OR bool_or(ct.reference_solution='')
+		 ) invalid_tasks)
+	`).Scan(&archetypeCount, &drillCount, &archetypeTestCount, &drillTestCount, &invalidTaskCount)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if archetypeCount != 30 || drillCount != 600 {
+		t.Fatalf("unexpected advanced livecoding bank: archetypes=%d drills=%d", archetypeCount, drillCount)
+	}
+	if archetypeTestCount != 60 || drillTestCount != 1200 || invalidTaskCount != 0 {
+		t.Fatalf("invalid advanced livecoding verification: archetypeTests=%d drillTests=%d invalidTasks=%d", archetypeTestCount, drillTestCount, invalidTaskCount)
+	}
+}
