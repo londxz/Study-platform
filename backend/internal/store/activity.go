@@ -185,7 +185,7 @@ func insertSessionItem(ctx context.Context, tx pgx.Tx, sessionID string, positio
 	item := model.InterviewItem{Position: position, QuestionID: questionID, CodingTaskID: taskID, Snapshot: snapshot}
 	err = tx.QueryRow(ctx, `INSERT INTO interview_session_items
 		(session_id,question_id,coding_task_id,position,snapshot) VALUES ($1,$2,$3,$4,$5)
-		RETURNING id::text,answer,code,passed`, sessionID, questionID, taskID, position, raw).Scan(&item.ID, &item.Answer, &item.Code, &item.Passed)
+		RETURNING id::text,answer,code,passed`, sessionID, questionID, taskID, position, string(raw)).Scan(&item.ID, &item.Answer, &item.Code, &item.Passed)
 	return item, err
 }
 
